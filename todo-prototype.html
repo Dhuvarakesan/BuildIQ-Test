@@ -379,6 +379,7 @@
     }
 
     .task-row.is-complete {
+      border-color: #bee3d3;
       background: #f7fbf9;
     }
 
@@ -398,6 +399,11 @@
     .task-row.is-complete .task-text {
       color: var(--muted);
       text-decoration: line-through;
+    }
+
+    .task-row.is-complete .status-tag {
+      background: #dff3eb;
+      color: #155f47;
     }
 
     .delete-button {
@@ -661,9 +667,12 @@
         checkbox.className = "task-check";
         checkbox.type = "checkbox";
         checkbox.checked = task.complete;
-        checkbox.setAttribute("aria-label", `Mark ${task.text} complete`);
+        checkbox.setAttribute("aria-label", task.complete ? `Mark ${task.text} incomplete` : `Mark ${task.text} complete`);
         checkbox.addEventListener("change", () => {
-          task.complete = checkbox.checked;
+          const selectedTask = tasks.find((candidate) => candidate.id === task.id);
+          if (selectedTask) {
+            selectedTask.complete = checkbox.checked;
+          }
           renderTasks();
         });
 
