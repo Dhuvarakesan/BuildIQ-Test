@@ -648,8 +648,13 @@
         showMessage(success, "");
       }
 
-      function setInputState() {
-        const length = input.value.trim().length;
+      function getTrimmedInput() {
+        return input.value.trim();
+      }
+
+      function setInputState(trimmedText) {
+        const text = typeof trimmedText === "string" ? trimmedText : getTrimmedInput();
+        const length = text.length;
         const valid = length > 0 && length <= MAX_TASK_LENGTH;
         const tooLong = length > MAX_TASK_LENGTH;
 
@@ -721,12 +726,12 @@
 
       form.addEventListener("submit", function (event) {
         event.preventDefault();
-        const text = input.value.trim();
+        const text = getTrimmedInput();
 
         clearMessages();
+        setInputState(text);
 
         if (text.length < 1) {
-          input.setAttribute("aria-invalid", "true");
           showMessage(error, "Enter a task before adding it.");
           input.focus();
           return;
