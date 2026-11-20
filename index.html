@@ -596,6 +596,8 @@
 
       const STORAGE_KEY = "singleFileTodo.tasks.v1";
       const MAX_TASK_LENGTH = 120;
+      const SAVE_ERROR_MESSAGE = "Tasks cannot be saved locally. Check browser storage settings or available space.";
+      const READ_ERROR_MESSAGE = "Saved tasks could not be read from this browser. New tasks may not persist until local storage is available.";
       let tasks = [];
 
       const form = document.querySelector("#taskForm");
@@ -621,8 +623,13 @@
         return "task-" + Date.now() + "-" + Math.random().toString(16).slice(2);
       }
 
-      function normalizeTask(candidate) {
-        if (!candidate || typeof candidate.text !== "string") {
+      function isStoredTaskRecord(candidate) {
+        if (
+          !candidate ||
+          typeof candidate.id !== "string" ||
+          typeof candidate.text !== "string" ||
+          typeof candidate.createdAt !== "string"
+        ) {
           return null;
         }
 
@@ -632,9 +639,9 @@
         }
 
         return {
-          id: typeof candidate.id === "string" && candidate.id ? candidate.id : createTaskId(),
+          id: candidate.id,
           text,
-          createdAt: typeof candidate.createdAt === "string" && candidate.createdAt ? candidate.createdAt : new Date().toISOString()
+          createdAt: candidate.createdAt
         };
       }
 
@@ -681,9 +688,9 @@
             throw new Error("Stored tasks are not an array.");
           }
 
-          return parsed.map(normalizeTask).filter(Boolean);
+          return parsed.map(isStoredTaskRecord).filter(Boolean);
         } catch (storageError) {
-          showMessage(error, "Saved tasks could not be read from this browser. New tasks may not persist until local storage is available.");
+          showMessage(error, READ_ERROR_MESSAGE);
           return [];
         }
       }
@@ -693,7 +700,7 @@
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextTasks));
           return true;
         } catch (storageError) {
-          showMessage(error, "Tasks cannot be saved locally. Check browser storage settings or available space.");
+          showMessage(error, SAVE_ERROR_MESSAGE);
           return false;
         }
       }
