@@ -650,6 +650,16 @@
         element.classList.toggle("is-visible", Boolean(message));
       }
 
+      function showError(message) {
+        showMessage(success, "");
+        showMessage(error, message);
+      }
+
+      function showSuccess(message) {
+        showMessage(error, "");
+        showMessage(success, message);
+      }
+
       function clearMessages() {
         showMessage(error, "");
         showMessage(success, "");
@@ -670,7 +680,7 @@
         input.setAttribute("aria-invalid", String(tooLong));
 
         if (tooLong) {
-          showMessage(error, "Tasks must be 120 characters or fewer.");
+          showError("Tasks must be 120 characters or fewer.");
         } else if (error.textContent === "Tasks must be 120 characters or fewer.") {
           showMessage(error, "");
         }
@@ -690,7 +700,7 @@
 
           return parsed.map(isStoredTaskRecord).filter(Boolean);
         } catch (storageError) {
-          showMessage(error, READ_ERROR_MESSAGE);
+          showError(READ_ERROR_MESSAGE);
           return [];
         }
       }
@@ -700,7 +710,7 @@
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextTasks));
           return true;
         } catch (storageError) {
-          showMessage(error, SAVE_ERROR_MESSAGE);
+          showError(SAVE_ERROR_MESSAGE);
           return false;
         }
       }
@@ -739,14 +749,14 @@
         setInputState(text);
 
         if (text.length < 1) {
-          showMessage(error, "Enter a task before adding it.");
+          showError("Enter a task before adding it.");
           input.focus();
           return;
         }
 
         if (text.length > MAX_TASK_LENGTH) {
           input.setAttribute("aria-invalid", "true");
-          showMessage(error, "Tasks must be 120 characters or fewer.");
+          showError("Tasks must be 120 characters or fewer.");
           input.focus();
           return;
         }
@@ -768,7 +778,7 @@
         input.setAttribute("aria-invalid", "false");
         setInputState();
         renderTasks();
-        showMessage(success, "Task saved locally.");
+        showSuccess("Task saved locally.");
         input.focus();
       });
 
