@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Todo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-soft: #eef6f2;
+      --ink: #1f2933;
+      --muted: #697586;
+      --line: #d8dee7;
+      --accent: #1f7a5c;
+      --accent-strong: #155f47;
+      --accent-soft: #dff3eb;
+      --warn: #b42318;
+      --warn-soft: #fff0ed;
+      --success: #155f47;
+      --shadow: 0 18px 45px rgba(31, 41, 51, 0.1);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(31, 122, 92, 0.3);
+      outline-offset: 2px;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 16px;
+      top: -48px;
+      z-index: 20;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      background: var(--ink);
+      color: #ffffff;
+      text-decoration: none;
+      transition: top 150ms ease;
+    }
+
+    .skip-link:focus {
+      top: 14px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid rgba(216, 222, 231, 0.85);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .topbar-inner,
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 68px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      flex: 0 0 auto;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 750;
+    }
+
+    .brand-subtitle {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .topbar-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-align: right;
+    }
+
+    .page {
+      padding: 34px 0 52px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(250px, 0.85fr);
+      gap: 28px;
+      align-items: end;
+      padding: 34px 0 26px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 750;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(2rem, 8vw, 4.4rem);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .hero-copy {
+      max-width: 680px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .storage-panel {
+      border: 1px solid #bee3d3;
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .storage-panel h2,
+    .card h2 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.25;
+    }
+
+    .storage-panel p,
+    .storage-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 0.93rem;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .card-header,
+    .card-body {
+      padding: 20px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-kicker,
+    .hint,
+    .summary,
+    .counter {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .card-kicker {
+      margin: 6px 0 0;
+    }
+
+    .task-form {
+      display: grid;
+      gap: 10px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .task-input {
+      min-width: 0;
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #cbd5df;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      background: #ffffff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .task-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(31, 122, 92, 0.18);
+    }
+
+    .task-input[aria-invalid="true"] {
+      border-color: var(--warn);
+      box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.14);
+    }
+
+    .button {
+      min-height: 46px;
+      border: 0;
+      border-radius: var(--radius);
+      padding: 0 18px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      background: var(--accent-strong);
+    }
+
+    .button:disabled {
+      background: #aeb8c3;
+      color: #f7f9fb;
+      cursor: not-allowed;
+      opacity: 1;
+    }
+
+    .form-support {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .counter {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    .message {
+      display: none;
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 0.92rem;
+    }
+
+    .message.is-visible {
+      display: block;
+    }
+
+    .message.error {
+      border: 1px solid #f4b7ae;
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .message.success {
+      border: 1px solid #bee3d3;
+      background: var(--surface-soft);
+      color: var(--success);
+    }
+
+    .count-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 750;
+    }
+
+    .list-meta {
+      display: grid;
+      gap: 4px;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 230px;
+      border: 1px dashed #b8c7d8;
+      border-radius: var(--radius);
+      background: #fbfcfd;
+      text-align: center;
+      padding: 28px;
+    }
+
+    .empty-icon {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 14px;
+      border-radius: var(--radius);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 1.65rem;
+      font-weight: 850;
+    }
+
+    .empty-state h3 {
+      margin: 0;
+      font-size: 1.08rem;
+    }
+
+    .empty-state p {
+      max-width: 390px;
+      margin: 8px auto 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      min-height: 58px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #ffffff;
+    }
+
+    .task-index {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      background: #edf2f7;
+      color: #344054;
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .task-text {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      font-weight: 650;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #111827;
+        --surface: #17202d;
+        --surface-soft: #132f27;
+        --ink: #f6f7f9;
+        --muted: #a7b1bf;
+        --line: #334155;
+        --accent: #38a87e;
+        --accent-strong: #75d6b2;
+        --accent-soft: #183b31;
+        --warn: #ffb4a9;
+        --warn-soft: #3a1714;
+        --success: #95e2c3;
+        --shadow: 0 18px 45px rgba(0, 0, 0, 0.26);
+      }
+
+      .topbar {
+        background: rgba(23, 32, 45, 0.92);
+      }
+
+      .task-input,
+      .task-row,
+      .empty-state {
+        background: #111827;
+      }
+
+      .task-index {
+        background: #253143;
+        color: #d9e1ec;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .topbar-inner,
+      .hero,
+      .form-row,
+      .card-header,
+      .form-support {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar-inner,
+      .card-header,
+      .form-support {
+        align-items: stretch;
+      }
+
+      .topbar-inner {
+        padding: 12px 0;
+      }
+
+      .topbar-note {
+        text-align: left;
+      }
+
+      .hero {
+        gap: 18px;
+        padding-top: 24px;
+      }
+
+      .form-row,
+      .form-support {
+        display: grid;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .counter {
+        justify-self: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#todo-app">Skip to todo app</a>
+
+  <header class="topbar" aria-label="Application header">
+    <div class="topbar-inner">
+      <a class="brand" href="#todo-app" aria-label="Local Todo home">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span>
+          <span class="brand-title">Local Todo</span>
+          <span class="brand-subtitle">Single-file task capture</span>
+        </span>
+      </a>
+      <div class="topbar-note">Runs locally from this file. No accounts, servers, or sync.</div>
+    </div>
+  </header>
+
+  <main class="page" id="todo-app" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <div>
+        <p class="eyebrow">Same-browser todo list</p>
+        <h1 id="hero-title">Capture tasks without sending them anywhere.</h1>
+        <p class="hero-copy">Add a short task, keep the newest work at the top, and come back after refresh in this same browser.</p>
+      </div>
+      <aside class="storage-panel" aria-labelledby="storage-title">
+        <h2 id="storage-title">Local storage only</h2>
+        <p>Tasks are saved in this browser under a versioned localStorage key. They are not available in other browsers or devices.</p>
+      </aside>
+    </section>
+
+    <section class="workspace" aria-label="Todo workspace">
+      <section class="card" aria-labelledby="add-task-title">
+        <div class="card-header">
+          <div>
+            <h2 id="add-task-title">Add a task</h2>
+            <p class="card-kicker">Task text must be 1 to 120 characters after trimming.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <form class="task-form" id="taskForm" novalidate>
+            <div class="form-row">
+              <label class="visually-hidden" for="taskInput">Task description</label>
+              <input
+                class="task-input"
+                id="taskInput"
+                name="task"
+                type="text"
+                maxlength="160"
+                autocomplete="off"
+                placeholder="Add a task"
+                aria-describedby="taskHint taskCounter taskError"
+                aria-invalid="false"
+              >
+              <button class="button" id="addButton" type="submit" disabled>Add task</button>
+            </div>
+            <div class="form-support">
+              <div class="hint" id="taskHint">Type a task and use Add task to save it locally.</div>
+              <div class="counter" id="taskCounter" aria-live="polite">0/120</div>
+            </div>
+            <div class="message error" id="taskError" role="alert" aria-live="assertive"></div>
+            <div class="message success" id="taskSuccess" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="todo-list-title">
+        <div class="card-header">
+          <div class="list-meta">
+            <h2 id="todo-list-title">Todo list</h2>
+            <div class="summary" id="listSummary">No tasks yet.</div>
+          </div>
+          <span class="count-tag" id="taskCount">0 tasks</span>
+        </div>
+        <div class="card-body">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon" aria-hidden="true">+</div>
+            <h3>No tasks yet</h3>
+            <p>Add your first task above. New tasks will appear here with the newest item first.</p>
+          </div>
+          <ol class="task-list" id="taskList" aria-label="Tasks" hidden></ol>
+          <p class="storage-note">Saved tasks stay only in this browser and device using localStorage key <strong>singleFileTodo.tasks.v1</strong>.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const STORAGE_KEY = "singleFileTodo.tasks.v1";
+      const MAX_TASK_LENGTH = 120;
+      let tasks = [];
+
+      const form = document.querySelector("#taskForm");
+      const input = document.querySelector("#taskInput");
+      const addButton = document.querySelector("#addButton");
+      const counter = document.querySelector("#taskCounter");
+      const error = document.querySelector("#taskError");
+      const success = document.querySelector("#taskSuccess");
+      const list = document.querySelector("#taskList");
+      const emptyState = document.querySelector("#emptyState");
+      const summary = document.querySelector("#listSummary");
+      const count = document.querySelector("#taskCount");
+
+      function formatTaskCount(total) {
+        return total === 1 ? "1 task" : total + " tasks";
+      }
+
+      function createTaskId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+
+        return "task-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+      }
+
+      function normalizeTask(candidate) {
+        if (!candidate || typeof candidate.text !== "string") {
+          return null;
+        }
+
+        const text = candidate.text.trim();
+        if (text.length < 1 || text.length > MAX_TASK_LENGTH) {
+          return null;
+        }
+
+        return {
+          id: typeof candidate.id === "string" && candidate.id ? candidate.id : createTaskId(),
+          text,
+          createdAt: typeof candidate.createdAt === "string" && candidate.createdAt ? candidate.createdAt : new Date().toISOString()
+        };
+      }
+
+      function showMessage(element, message) {
+        element.textContent = message;
+        element.classList.toggle("is-visible", Boolean(message));
+      }
+
+      function clearMessages() {
+        showMessage(error, "");
+        showMessage(success, "");
+      }
+
+      function setInputState() {
+        const length = input.value.trim().length;
+        const valid = length > 0 && length <= MAX_TASK_LENGTH;
+        const tooLong = length > MAX_TASK_LENGTH;
+
+        counter.textContent = length + "/" + MAX_TASK_LENGTH;
+        addButton.disabled = !valid;
+        input.setAttribute("aria-invalid", String(tooLong));
+
+        if (tooLong) {
+          showMessage(error, "Tasks must be 120 characters or fewer.");
+        } else if (error.textContent === "Tasks must be 120 characters or fewer.") {
+          showMessage(error, "");
+        }
+      }
+
+      function loadTasks() {
+        try {
+          const stored = window.localStorage.getItem(STORAGE_KEY);
+          if (!stored) {
+            return [];
+          }
+
+          const parsed = JSON.parse(stored);
+          if (!Array.isArray(parsed)) {
+            throw new Error("Stored tasks are not an array.");
+          }
+
+          return parsed.map(normalizeTask).filter(Boolean);
+        } catch (storageError) {
+          showMessage(error, "Saved tasks could not be read from this browser. New tasks may not persist until local storage is available.");
+          return [];
+        }
+      }
+
+      function saveTasks(nextTasks) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextTasks));
+          return true;
+        } catch (storageError) {
+          showMessage(error, "Tasks cannot be saved locally. Check browser storage settings or available space.");
+          return false;
+        }
+      }
+
+      function renderTasks() {
+        const total = tasks.length;
+        count.textContent = formatTaskCount(total);
+        summary.textContent = total === 0 ? "No tasks yet." : "Showing newest first.";
+
+        emptyState.hidden = total > 0;
+        list.hidden = total === 0;
+        list.replaceChildren();
+
+        tasks.forEach((task, index) => {
+          const row = document.createElement("li");
+          row.className = "task-row";
+
+          const taskIndex = document.createElement("span");
+          taskIndex.className = "task-index";
+          taskIndex.textContent = String(index + 1);
+
+          const taskText = document.createElement("span");
+          taskText.className = "task-text";
+          taskText.textContent = task.text;
+
+          row.append(taskIndex, taskText);
+          list.append(row);
+        });
+      }
+
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const text = input.value.trim();
+
+        clearMessages();
+
+        if (text.length < 1) {
+          input.setAttribute("aria-invalid", "true");
+          showMessage(error, "Enter a task before adding it.");
+          input.focus();
+          return;
+        }
+
+        if (text.length > MAX_TASK_LENGTH) {
+          input.setAttribute("aria-invalid", "true");
+          showMessage(error, "Tasks must be 120 characters or fewer.");
+          input.focus();
+          return;
+        }
+
+        const nextTask = {
+          id: createTaskId(),
+          text,
+          createdAt: new Date().toISOString()
+        };
+        const nextTasks = [nextTask].concat(tasks);
+
+        if (!saveTasks(nextTasks)) {
+          input.focus();
+          return;
+        }
+
+        tasks = nextTasks;
+        input.value = "";
+        input.setAttribute("aria-invalid", "false");
+        setInputState();
+        renderTasks();
+        showMessage(success, "Task saved locally.");
+        input.focus();
+      });
+
+      input.addEventListener("input", function () {
+        clearMessages();
+        setInputState();
+      });
+
+      tasks = loadTasks();
+      renderTasks();
+      setInputState();
+    }());
+  </script>
+</body>
+</html>
