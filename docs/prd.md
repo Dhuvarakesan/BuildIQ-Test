@@ -4,104 +4,94 @@
 
 ## Document Metadata
 
-- **Product/Application:** Single-File HTML Todo Prototype
-- **Document ID:** PRD-HTML-TODO-PROTOTYPE
+- **Product/Application:** Single-File Todo App
+- **Document ID:** PRD-TODO-SINGLE-HTML
 - **Version:** 0.1
 - **Status:** Draft
-- **Owner:** TBD
+- **Owner:** Individual user/product owner
 - **Contributors:** TBD
-- **Last Updated:** 2026-11-19
+- **Last Updated:** 2026-11-20
 
 ---
 
 ## 1. Executive Summary
 
-This PRD defines a same-day, single-file HTML prototype for a simple todo list. The prototype is intended for stakeholder review by a small business and will demonstrate a clean, comparable core todo experience in Desktop Chrome.
+The Single-File Todo App is a simple browser-based todo list built as one self-contained HTML file with embedded CSS and JavaScript. It is intended for an individual user in a small business context who needs a lightweight way to quickly capture personal tasks in one browser without adopting a full task-management tool.
 
-The prototype will allow a general visitor to add tasks, mark tasks complete, and delete tasks. It will not include backend services, persistence after refresh, user accounts, sync, collaboration, due dates, reminders, analytics, or formal accessibility requirements.
-
-The expected value is to help stakeholders validate whether users need a todo list and decide whether to proceed with a more complete todo product after comparing the core experience against competitor todo apps.
+The first version focuses narrowly on adding tasks, storing them locally in the browser, and displaying them in a clean, responsive interface. Task completion, deletion, editing, collaboration, due dates, priorities, categories, and external synchronization are explicitly out of scope for this version.
 
 ## 2. Problem Statement
 
-Stakeholders need a fast, concrete way to evaluate whether a simple todo list concept is worth further investment. Today, the need for a todo list is not yet validated, and stakeholders need to compare the basic experience against competitor todo apps before deciding whether to proceed.
+Today, the user’s task tracking is informal or scattered, causing missed personal tasks. The user needs a simple, fast, local todo list that can capture tasks in one browser and persist them after refresh without requiring setup, accounts, external services, or multiple files.
 
 ## 3. Product Vision
 
-The target end state is a review-ready, self-contained HTML file that opens in Desktop Chrome and presents a clean, modern todo list experience. A general visitor can add a task, see it appear in the list, mark it complete, and delete it immediately, enabling stakeholders to judge the core interaction quality without backend complexity.
+The target end state is a single HTML file that the user can open in a modern browser to add personal tasks, see the newest tasks first, and rely on those tasks being saved in the same browser through local storage. The app should feel clean and usable on desktop and mobile-sized screens while remaining simple enough to maintain as one file.
 
 ## 4. Goals and Success Measures
 
 ### 4.1 Goals
 
-- Provide a same-day prototype that demonstrates the core todo flow.
-- Enable stakeholders to compare the core experience against competitor todo apps.
-- Support an informed decision on whether to proceed with a more complete todo product.
+- Provide a simple way for an individual user to capture todo tasks in one browser.
+- Persist added tasks locally on the same device and browser after refresh.
+- Keep implementation self-contained in one HTML file with no external libraries.
+- Provide a clean, minimal, responsive user interface.
 
 ### 4.2 Success Measures
 
 | ID | Measure | Baseline | Target | Measurement Method |
 |---|---|---:|---:|---|
-| KPI-001 | Informal stakeholder feedback on the core todo experience | No prototype feedback collected | Stakeholders provide feedback after reviewing add, complete, and delete interactions | Stakeholder review discussion |
-| KPI-002 | Proceed/no-proceed decision readiness | Decision not made | Stakeholders can decide whether to proceed with a more complete todo product | Stakeholder review outcome |
+| KPI-001 | Local task creation and persistence | Informal/scattered task tracking; no dedicated local todo persistence | 10 tasks can be created and remain visible after browser refresh without data loss | Manual acceptance test in supported browsers |
+| KPI-002 | Core task-entry usability | Empty task handling not available | Add button is disabled until valid task text is entered | Manual UI test |
+| KPI-003 | Single-file implementation compliance | No app exists | App runs from one self-contained HTML file with embedded CSS and JavaScript and no external libraries | File inspection and browser test |
 
 ## 5. Scope
 
 ### 5.1 In Scope
 
-- Single self-contained HTML file with inline CSS and JavaScript.
-- Clean modern layout with simple responsive styling.
-- Empty initial state with a short prompt to add a task.
-- Add task interaction.
-- Prevent blank tasks and show a simple inline error message.
-- Mark task complete interaction.
-- Immediate task deletion interaction.
-- Desktop Chrome support.
+- Add a new todo task from a text input.
+- Store tasks in browser local storage on the same device and browser.
+- Display saved tasks after page refresh.
+- Show newly added tasks at the top of the list.
+- Enforce task text length of 1–120 characters.
+- Disable the add button until valid task text is entered.
+- Provide a clean, minimal, responsive design with embedded CSS.
+- Show a clear error when tasks cannot be saved locally because local storage is unavailable or full.
 
 ### 5.2 Out of Scope
 
-- User accounts.
-- Backend services or sync.
-- Team sharing or collaboration.
-- Due dates.
-- Reminders.
-- Analytics.
-- Persistence after browser refresh.
-- Formal accessibility requirements.
-- Production readiness.
+- Marking tasks complete or incomplete.
+- Deleting tasks.
+- Editing task text after creation.
+- Due dates, priorities, categories, reminders, or search.
+- Collaboration, multi-user access, accounts, login, or synchronization across devices.
+- Backend services, databases, APIs, analytics, or external libraries.
+- App-store packaging or distribution.
 
 ## 6. Personas and Users
 
-### PERSONA-001 — General Prototype Visitor
+### PERSONA-001 — Individual Todo User
 
-- **Description:** A general visitor testing the simple todo prototype during stakeholder review.
-- **Primary Need:** Quickly understand and try the core todo interactions.
-- **Key Pain Point:** Needs a simple way to judge whether the todo concept is useful without evaluating a full production product.
-
-### PERSONA-002 — Small Business Stakeholder
-
-- **Description:** A stakeholder at a small business reviewing whether to continue investing in the todo product concept.
-- **Primary Need:** Compare the core todo experience against competitor todo apps.
-- **Key Pain Point:** Needs enough evidence from a lightweight prototype to make a proceed/no-proceed decision.
+- **Description:** An individual user at a small business who needs to track personal tasks in a lightweight browser-based tool.
+- **Primary Need:** Quickly capture simple tasks and return to them later in the same browser.
+- **Key Pain Point:** Current task tracking is informal or scattered, causing missed personal tasks.
 
 ## 7. Assumptions and Dependencies
 
 ### Assumptions
 
-- ASM-001 — The prototype will be reviewed in Desktop Chrome.
-- ASM-002 — Tasks do not need to persist after refresh because this is only a prototype.
-- ASM-003 — Informal stakeholder feedback is sufficient for this phase.
-- ASM-004 — No formal accessibility requirement applies to this prototype.
+- ASM-001 — The user will use a current version of Chrome, Edge, Firefox, or Safari.
+- ASM-002 — The user expects tasks to persist only on the same device and browser where they were created.
+- ASM-003 — A single-user, local-only app is sufficient for the first version.
 
 ### Dependencies
 
-- DEP-001 — A stakeholder review session or equivalent feedback channel is available.
-- DEP-002 — Reviewers have access to Desktop Chrome.
-- DEP-003 — A developer or prototyping resource is available for same-day delivery.
+- DEP-001 — Browser local storage must be available and writable for task persistence.
+- DEP-002 — The browser must support standard HTML, CSS, and JavaScript required by the single-file implementation.
 
 ## 8. Functional Requirements
 
-### PRD-FR-001 — Display Empty Todo List
+### PRD-FR-001 — Add Task
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -109,21 +99,21 @@ The target end state is a review-ready, self-contained HTML file that opens in D
 
 **Requirement**
 
-The system shall display an empty todo list with a short prompt to add a task when the prototype first opens.
+The system shall allow the user to add a todo task by entering valid task text and submitting it from the page.
 
 **Business Rationale**
 
-The empty state helps visitors understand what to do first without requiring sample data or instructions.
+Adding tasks is the core value of the first version and directly addresses the need to capture scattered personal tasks in one place.
 
 **Acceptance Criteria**
 
-1. When the HTML file opens in Desktop Chrome for a new session, no user-created tasks are displayed.
-2. The page displays a prompt that communicates the user can add a task.
-3. The task input and add action are visible without navigating to another page.
+1. Given the input contains valid task text, when the user activates the add control, then the task appears in the todo list.
+2. Given a task is added, when it appears in the list, then its visible text matches the submitted task text after trimming leading and trailing whitespace.
+3. Given a task is added successfully, when the add action completes, then the input is cleared for the next task.
 
 ---
 
-### PRD-FR-002 — Add Task
+### PRD-FR-002 — Validate Task Input
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -131,21 +121,21 @@ The empty state helps visitors understand what to do first without requiring sam
 
 **Requirement**
 
-The system shall allow a user to add a non-blank task to the todo list.
+The system shall accept only task text from 1 to 120 characters and disable the add button until the current input is valid.
 
 **Business Rationale**
 
-Adding a task is the primary interaction required to evaluate the todo list concept.
+Input validation prevents blank tasks and keeps task entries concise enough for a simple todo list.
 
 **Acceptance Criteria**
 
-1. Given the user enters non-blank task text and submits it, the task appears in the todo list.
-2. After a task is added, the input field clears.
-3. The newly added task is displayed as incomplete.
+1. Given the input is empty or contains only whitespace, then the add button is disabled.
+2. Given the input contains 1–120 non-whitespace characters after trimming, then the add button is enabled.
+3. Given the input exceeds 120 characters, then the app prevents adding the task.
 
 ---
 
-### PRD-FR-003 — Prevent Blank Tasks
+### PRD-FR-003 — Persist Tasks Locally
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -153,22 +143,21 @@ Adding a task is the primary interaction required to evaluate the todo list conc
 
 **Requirement**
 
-The system shall prevent blank task submissions and show a simple inline error message.
+The system shall save added tasks to browser local storage so they persist on the same device and browser after refresh.
 
 **Business Rationale**
 
-Blank tasks would make the prototype feel broken and reduce confidence during stakeholder review.
+Persistence is necessary for the app to be useful beyond a single browser session and to avoid losing captured tasks.
 
 **Acceptance Criteria**
 
-1. Given the user submits an empty input, no task is added to the list.
-2. Given the user submits only whitespace, no task is added to the list.
-3. The page displays an inline error message after a blank submission.
-4. The inline error message is removed or no longer shown after a valid task is added.
+1. Given the user adds tasks, when the page is refreshed, then the previously added tasks remain visible.
+2. Given 10 valid tasks are added, when the page is refreshed, then all 10 tasks remain visible without data loss.
+3. Given the user opens the file in a different browser or device, then the app does not claim that prior tasks will be available there.
 
 ---
 
-### PRD-FR-004 — Mark Task Complete
+### PRD-FR-004 — Display Newest Tasks First
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -176,21 +165,20 @@ Blank tasks would make the prototype feel broken and reduce confidence during st
 
 **Requirement**
 
-The system shall allow a user to mark a task as complete.
+The system shall display newly added tasks at the top of the task list.
 
 **Business Rationale**
 
-Completion is a core todo interaction needed for meaningful comparison against competitor todo apps.
+Showing newest tasks first keeps the most recently captured work immediately visible.
 
 **Acceptance Criteria**
 
-1. Given an incomplete task exists, the user can activate a completion control for that task.
-2. After completion, the task visibly changes to indicate it is complete.
-3. Completing one task does not change the completion state of other tasks.
+1. Given an existing list of tasks, when the user adds a new task, then the new task appears above all previously added tasks.
+2. Given multiple tasks are saved and the page is refreshed, then the newest-first ordering is preserved.
 
 ---
 
-### PRD-FR-005 — Delete Task Immediately
+### PRD-FR-005 — Handle Local Storage Failure
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -198,21 +186,21 @@ Completion is a core todo interaction needed for meaningful comparison against c
 
 **Requirement**
 
-The system shall delete a task immediately when the user clicks a delete button.
+The system shall show a clear error when tasks cannot be saved because browser local storage is unavailable or full.
 
 **Business Rationale**
 
-Immediate deletion keeps the prototype simple and supports fast evaluation of the core todo flow.
+The user needs to know when persistence is not working so they do not assume tasks have been saved.
 
 **Acceptance Criteria**
 
-1. Given a task exists, the user can click a delete button associated with that task.
-2. After the delete button is clicked, the task is removed from the list without confirmation.
-3. Deleting one task does not remove other tasks.
+1. Given local storage is unavailable, when the app attempts to save a task, then a visible error message states that tasks cannot be saved locally.
+2. Given local storage is full or rejects writes, when the app attempts to save a task, then a visible error message states that tasks cannot be saved locally.
+3. Given a save error occurs, then the app does not present the task as successfully persisted.
 
 ---
 
-### PRD-FR-006 — Reset Tasks on Refresh
+### PRD-FR-006 — Provide Responsive Single-Page UI
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -220,155 +208,146 @@ Immediate deletion keeps the prototype simple and supports fast evaluation of th
 
 **Requirement**
 
-The system shall not persist user-created tasks after the browser page is refreshed.
+The system shall provide a clean, minimal, responsive interface within the single HTML page.
 
 **Business Rationale**
 
-The prototype is for review only and does not require local or backend storage.
+A simple responsive interface makes the app usable in common browser window sizes without increasing implementation complexity.
 
 **Acceptance Criteria**
 
-1. Given the user adds one or more tasks, refreshing the page clears the task list.
-2. After refresh, the page returns to the initial empty state.
-3. No backend request is required to load or restore tasks.
+1. Given the app is opened on a desktop-sized browser window, then the input, add button, and task list are visible and usable without horizontal scrolling.
+2. Given the app is opened on a mobile-sized browser window, then the input, add button, and task list remain visible and usable without horizontal scrolling.
+3. Given the HTML file is inspected, then CSS is embedded in the file and not loaded from an external stylesheet.
 
 ## 9. Non-Functional Requirements
 
-### PRD-NFR-001 — Single-File Implementation
-
-- **Category:** Scalability
-- **Priority:** Must
-
-**Requirement**
-
-The system shall be implemented as one self-contained HTML file with inline CSS and JavaScript and no backend dependency.
-
-**Acceptance Criteria**
-
-1. The prototype can be opened directly from a single `.html` file in Desktop Chrome.
-2. The prototype does not require a server to add, complete, or delete tasks.
-3. The prototype does not require separate CSS or JavaScript files.
-
----
-
-### PRD-NFR-002 — Desktop Chrome Compatibility
-
-- **Category:** Performance
-- **Priority:** Must
-
-**Requirement**
-
-The system shall support the core add, complete, and delete interactions in Desktop Chrome.
-
-**Acceptance Criteria**
-
-1. In Desktop Chrome, the user can add a valid task.
-2. In Desktop Chrome, the user can mark a task complete.
-3. In Desktop Chrome, the user can delete a task.
-
----
-
-### PRD-NFR-003 — No Formal Accessibility Requirement
+### PRD-NFR-001 — Browser Compatibility and Keyboard Accessibility
 
 - **Category:** Accessibility
-- **Priority:** Could
+- **Priority:** Must
 
 **Requirement**
 
-The system shall not require formal accessibility validation for this prototype phase.
+The system shall work in current Chrome, Edge, Firefox, and Safari browsers, with keyboard-operable task input and add button.
 
 **Acceptance Criteria**
 
-1. No WCAG conformance report is required for prototype acceptance.
-2. Prototype acceptance is not blocked by formal accessibility audit results.
+1. In current Chrome, Edge, Firefox, and Safari, the user can enter valid task text, activate the add button by keyboard, and see the task added to the list.
+2. The task input can receive keyboard focus.
+3. The add button can receive keyboard focus when enabled and cannot be activated when disabled.
+
+---
+
+### PRD-NFR-002 — Local-Only Privacy
+
+- **Category:** Privacy
+- **Priority:** Must
+
+**Requirement**
+
+The system shall keep tasks only in the user’s browser local storage and shall not transmit task data externally.
+
+**Acceptance Criteria**
+
+1. Given the app is used to add tasks, then no network request is required to create, display, or persist tasks.
+2. Given the HTML file is inspected, then it contains no external scripts, analytics, API calls, or CDN dependencies.
+
+---
+
+### PRD-NFR-003 — Single-File Implementation
+
+- **Category:** Compliance
+- **Priority:** Must
+
+**Requirement**
+
+The system shall be delivered as one self-contained HTML file with embedded CSS and JavaScript and no external libraries.
+
+**Acceptance Criteria**
+
+1. The deliverable consists of one HTML file required to run the app.
+2. The HTML file contains embedded CSS and JavaScript.
+3. The HTML file does not reference external JavaScript libraries, CSS files, fonts, images, APIs, or CDNs.
 
 ## 10. User Journeys
 
-### JOURNEY-001 — Add a Task
+### JOURNEY-001 — Add and Persist a Task
 
-1. The visitor opens the single HTML file in Desktop Chrome.
-2. The visitor sees an empty list with a prompt to add a task.
-3. The visitor enters task text and submits it.
-4. The task appears in the todo list as incomplete.
+1. The user opens the single HTML file in a supported browser.
+2. The user types a valid task between 1 and 120 characters.
+3. The add button becomes enabled.
+4. The user activates the add button.
+5. The task appears at the top of the list.
+6. The user refreshes the browser.
+7. The saved task remains visible in the list.
 
-**Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-NFR-001, PRD-NFR-002
+**Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-003, PRD-FR-004, PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
 
-### JOURNEY-002 — Handle Blank Task Input
+### JOURNEY-002 — Empty Input Is Prevented
 
-1. The visitor opens the prototype.
-2. The visitor submits the task input while it is empty or whitespace-only.
-3. The prototype does not add a task and displays an inline error message.
+1. The user opens the single HTML file in a supported browser.
+2. The task input is empty or contains only whitespace.
+3. The add button remains disabled.
+4. The user cannot add a blank task.
 
-**Related Requirements:** PRD-FR-003, PRD-NFR-002
+**Related Requirements:** PRD-FR-002, PRD-NFR-001
 
-### JOURNEY-003 — Complete and Delete a Task
+### JOURNEY-003 — Local Save Fails
 
-1. The visitor adds a task.
-2. The visitor marks the task complete.
-3. The task visibly changes to a completed state.
-4. The visitor clicks the delete button.
-5. The task is immediately removed from the list.
+1. The user opens the single HTML file in a browser where local storage is unavailable or full.
+2. The user enters valid task text.
+3. The user attempts to add the task.
+4. The app shows a clear error that tasks cannot be saved locally.
 
-**Related Requirements:** PRD-FR-004, PRD-FR-005, PRD-NFR-002
-
-### JOURNEY-004 — Stakeholder Review Decision
-
-1. A stakeholder opens the prototype in Desktop Chrome.
-2. The stakeholder reviews the add, complete, and delete interactions.
-3. The stakeholder compares the core experience against competitor todo apps.
-4. The stakeholder provides informal feedback and decides whether to proceed with a more complete todo product.
-
-**Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-004, PRD-FR-005
+**Related Requirements:** PRD-FR-005
 
 ## 11. Feature Breakdown
 
-### FEAT-001 — Core Todo Prototype
+### FEAT-001 — Local Todo Capture
 
-- **Summary:** A single-file HTML todo prototype that supports empty state, task creation, blank-input validation, completion, immediate deletion, and reset-on-refresh behavior.
+- **Summary:** A single-file browser todo app that lets an individual user add valid tasks, view newest tasks first, and persist them locally in browser storage.
 - **Priority:** Must
 - **Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-003, PRD-FR-004, PRD-FR-005, PRD-FR-006, PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
-- **Expected Spec File:** `specs/FEAT-001-core-todo-prototype.spec.md`
+- **Expected Spec File:** `specs/FEAT-001-local-todo-capture.spec.md`
 
 ## 12. Constraints
 
-- CON-001 — The company context is a small business.
-- CON-002 — The prototype must be delivered same-day.
-- CON-003 — The prototype must be a single self-contained HTML file with inline CSS and JavaScript.
-- CON-004 — The prototype must not use a backend.
-- CON-005 — The prototype targets Desktop Chrome only.
-- CON-006 — The prototype must use a clean modern layout with simple responsive styling.
-- CON-007 — The prototype must not persist tasks after refresh.
-- CON-008 — Formal accessibility compliance is not required for this prototype phase.
+- CON-001 — The app must be delivered as one self-contained HTML file.
+- CON-002 — CSS and JavaScript must be embedded in the HTML file.
+- CON-003 — No external libraries, CDNs, APIs, or backend services may be used.
+- CON-004 — Tasks must remain local to the user’s browser storage and must not be transmitted externally.
+- CON-005 — The first version must not include completion, deletion, editing, collaboration, due dates, priorities, or categories.
 
 ## 13. Risks
 
 | ID | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|---|
-| RISK-001 | Stakeholders expect production-level features from a prototype | Medium | Medium | Clearly label the deliverable as a prototype and document out-of-scope items. |
-| RISK-002 | Lack of formal metrics makes decision quality subjective | Medium | Medium | Capture informal feedback and record the proceed/no-proceed decision outcome. |
-| RISK-003 | Desktop Chrome-only support limits review coverage | Low | Medium | Confirm reviewers use Desktop Chrome for the stakeholder review. |
-| RISK-004 | No persistence after refresh may be mistaken for a defect | Low | Medium | Communicate reset-on-refresh behavior as an intentional prototype constraint. |
+| RISK-001 | Browser local storage is unavailable, disabled, or full | High | Medium | Show a clear save error and do not imply the task was persisted |
+| RISK-002 | The user expects tasks to sync across devices or browsers | Medium | Medium | State through product behavior and documentation that tasks are stored only in the current browser |
+| RISK-003 | Minimal first-version scope may feel incomplete without delete or complete actions | Medium | Medium | Keep complete and delete explicitly out of scope for this version and consider them for a future version |
 
 ## 14. Open Questions
 
 | ID | Question | Owner | Status | Decision/Due Date |
 |---|---|---|---|---|
-| OQ-001 | No open questions identified after interview; proceed with documented decisions. | Product Owner | Closed | 2026-11-19 |
+| OQ-001 | No open questions for the first-version PRD based on current decisions. | Individual user/product owner | Closed | 2026-11-20 |
 
 ## 15. Release and Rollout Considerations
 
-- **Target Release:** Same-day delivery.
-- **Rollout Approach:** Full delivery of a single local HTML prototype for stakeholder review.
-- **Migration Considerations:** No migration is required because the prototype has no backend and does not persist tasks.
-- **Training/Support Considerations:** No formal training is required; stakeholders should be told that the prototype supports add, complete, delete, blank-input validation, and reset-on-refresh behavior.
+- **Target Release:** As soon as the single-file version is implemented and manually accepted.
+- **Rollout Approach:** Full rollout to the individual user.
+- **Migration Considerations:** No migration is required because no existing app data source is in scope.
+- **Training/Support Considerations:** No formal training is required; the interface should be self-explanatory for adding tasks.
 
 ## 16. Definition of Product Success
 
 The product is successful when:
 
-- Stakeholders can review the core todo flow in Desktop Chrome.
-- Stakeholders provide informal feedback on the prototype.
-- Stakeholders can decide whether to proceed with a more complete todo product.
+- The user can create and persist at least 10 tasks locally without data loss during refresh.
+- The app is delivered as one self-contained HTML file with embedded CSS and JavaScript and no external libraries.
+- The add button is disabled until valid task text is entered.
+- Tasks remain only in browser local storage and are never transmitted externally.
 - All Must-priority requirements are accepted.
 - Required quality, security, and compliance outcomes are evidenced.
 
@@ -376,5 +355,5 @@ The product is successful when:
 
 | Role | Name | Decision | Date |
 |---|---|---|---|
-| Product Owner | TBD | Pending | TBD |
-| Business Sponsor | TBD | Pending | TBD |
+| Product Owner | Individual user/product owner | Pending | TBD |
+| Business Sponsor | Individual user/product owner | Pending | TBD |
