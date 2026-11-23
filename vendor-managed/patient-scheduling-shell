@@ -1,0 +1,234 @@
+patient_scheduling_shell:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-005
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_patient_portal
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+
+scope:
+  persona: patient
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  phi_policy: minimize_phi_in_operational_copies_logs_sms_and_email
+  bulk_history_migration: disabled_for_pilot
+
+responsive_shell:
+  prototype_alignment:
+    sticky_top_bar: enabled
+    persona_switcher: enabled_for_pilot_review_only
+    left_navigation_desktop: enabled
+    mobile_navigation: bottom_or_collapsible_vendor_equivalent
+    card_based_content_regions: enabled
+    status_panels: enabled
+    tag_badges: enabled
+    selected_slot_buttons: enabled
+    modal_confirmation_pattern: enabled
+  breakpoints:
+    mobile_first: true
+    mobile_navigation_max_width_px: 767
+    desktop_left_navigation_min_width_px: 768
+  layout_rules:
+    - primary_booking_flow_is_first_content_region_after_skip_link
+    - selected_slot_buttons_keep_minimum_44px_touch_target
+    - cards_use_vendor_standard_radius_no_more_than_8px_where_configurable
+    - confirmation_modals_remain_centered_and_scrollable_on_small_screens
+    - no_patient_phi_in_persistent_shell_labels_or_notifications
+
+navigation:
+  landmark_label: Patient scheduling navigation
+  entries:
+    - id: nav-book-appointment
+      label: Book appointment
+      route_or_vendor_screen: patient.direct_booking
+      visible_for_persona: patient
+      order: 1
+      icon: calendar_plus_vendor_equivalent
+      destination_heading: Book an appointment
+      workflow:
+        - choose_appointment_type
+        - choose_provider_or_first_available
+        - choose_location
+        - choose_available_slot
+        - confirm_booking
+    - id: nav-request-appointment
+      label: Request appointment
+      route_or_vendor_screen: patient.appointment_request
+      visible_for_persona: patient
+      order: 2
+      icon: clipboard_request_vendor_equivalent
+      destination_heading: Request an appointment
+      workflow:
+        - select_request_type
+        - provide_contact_preference
+        - submit_staff_confirmed_request
+    - id: nav-reschedule
+      label: Reschedule
+      route_or_vendor_screen: patient.reschedule
+      visible_for_persona: patient
+      order: 3
+      icon: calendar_clock_vendor_equivalent
+      destination_heading: Reschedule an appointment
+      workflow:
+        - verify_existing_appointment
+        - choose_new_available_slot
+        - confirm_reschedule
+    - id: nav-reminder-link
+      label: Reminder link
+      route_or_vendor_screen: patient.reminder_deep_link
+      visible_for_persona: patient
+      order: 4
+      icon: link_vendor_equivalent
+      destination_heading: Appointment reminder
+      workflow:
+        - open_reminder_link
+        - view_phi_minimized_action_prompt
+        - confirm_or_reschedule_when_vendor_supported
+
+pilot_pages:
+  - id: patient-book-appointment
+    nav_entry: nav-book-appointment
+    semantic_heading_level_1: Book an appointment
+    required_components:
+      - card: appointment_type_picker
+      - card: provider_location_selector
+      - status_panel: ehr_availability_freshness
+      - selected_slot_buttons: available_times
+      - modal: booking_confirmation
+      - tag_badges: direct_bookable_and_staff_confirmation_status
+    forms:
+      labels_required: true
+      inline_error_text_required: true
+      autocomplete_enabled_where_safe: true
+  - id: patient-request-appointment
+    nav_entry: nav-request-appointment
+    semantic_heading_level_1: Request an appointment
+    required_components:
+      - card: request_details
+      - card: contact_preference
+      - status_panel: staff_review_expectation
+      - modal: request_submitted_confirmation
+      - tag_badges: pending_staff_confirmation
+    forms:
+      labels_required: true
+      inline_error_text_required: true
+      appointment_reason_uses_vendor_minimized_field_controls: true
+  - id: patient-reschedule
+    nav_entry: nav-reschedule
+    semantic_heading_level_1: Reschedule an appointment
+    required_components:
+      - card: appointment_lookup
+      - status_panel: current_appointment_summary
+      - selected_slot_buttons: replacement_times
+      - modal: reschedule_confirmation
+      - tag_badges: rescheduled_and_sync_status
+    forms:
+      labels_required: true
+      inline_error_text_required: true
+  - id: patient-reminder-link
+    nav_entry: nav-reminder-link
+    semantic_heading_level_1: Appointment reminder
+    required_components:
+      - card: reminder_action
+      - status_panel: reminder_delivery_or_action_state
+      - modal: reminder_action_confirmation
+      - tag_badges: confirmed_pending_or_reschedule_available
+    forms:
+      labels_required: true
+      inline_error_text_required: true
+
+accessibility:
+  skip_link:
+    enabled: true
+    label: Skip to scheduling content
+    target: main_patient_scheduling_content
+    visible_on_focus: true
+  landmarks:
+    header: enabled
+    nav: enabled
+    main: enabled
+    complementary: enabled_where_status_panel_is_present
+  keyboard_navigation:
+    tab_order:
+      - skip_link
+      - top_bar_persona_switcher_if_available
+      - patient_navigation
+      - main_page_heading
+      - forms_and_slot_controls
+      - primary_action_buttons
+      - modal_controls_when_open
+    focus_visible_required: true
+    focus_trap_required_for_modals: true
+    escape_closes_non_destructive_modals: true
+    enter_or_space_activates_slot_buttons: true
+  touch_targets:
+    minimum_width_px: 44
+    minimum_height_px: 44
+  heading_policy:
+    exactly_one_h1_per_pilot_page: true
+    headings_do_not_skip_levels: true
+  form_policy:
+    visible_or_programmatic_labels_required: true
+    required_fields_identified_programmatically: true
+    errors_announced_to_assistive_technology: true
+
+theme:
+  supported_modes:
+    - light
+    - dark
+    - vendor_high_contrast_equivalent
+  default_mode: light
+  respects_system_preference: true
+  minimum_contrast:
+    normal_text: WCAG_2_1_AA_4_5_to_1
+    large_text_and_ui_state: WCAG_2_1_AA_3_to_1
+    focus_indicator: visible_against_adjacent_colors
+
+wcag_validation:
+  standard: WCAG_2_1_AA
+  status: required_passing_before_launch
+  pilot_pages_in_scope:
+    - patient-book-appointment
+    - patient-request-appointment
+    - patient-reschedule
+    - patient-reminder-link
+  required_evidence:
+    automated_scan:
+      tool: vendor_supported_axe_lighthouse_or_equivalent
+      result_required: pass_no_critical_or_serious_violations
+    keyboard_walkthrough:
+      result_required: pass
+      checkpoints:
+        - skip_link_reaches_main_content
+        - patient_navigation_reachable
+        - form_fields_reachable_and_labeled
+        - selected_slot_buttons_reachable_and_operable
+        - confirmation_modal_controls_reachable_labeled_and_focus_trapped
+    screen_reader_smoke_test:
+      result_required: pass
+      checkpoints:
+        - page_heading_announced
+        - nav_labels_announced
+        - validation_errors_announced
+        - modal_title_and_confirmation_state_announced
+  launch_gate:
+    block_launch_until_validation_passes: true
+    unresolved_wcag_aa_failure_blocks_pilot: true
+
+acceptance_mapping:
+  AC-010:
+    patient_navigation_entries:
+      - Book appointment
+      - Request appointment
+      - Reschedule
+      - Reminder link
+  AC-011:
+    keyboard_and_focus_controls:
+      - skip_link
+      - visible_focus_state
+      - reachable_navigation
+      - reachable_forms
+      - reachable_slot_buttons
+      - reachable_modal_controls
+  AC-012:
+    wcag_2_1_aa_gate: required_passing_before_launch
