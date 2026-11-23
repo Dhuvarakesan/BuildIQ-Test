@@ -4,489 +4,649 @@
 
 ## Document Metadata
 
-- **Product/Application:** Single-File HTML Todo Prototype
-- **Document ID:** ARD-HTML-TODO-PROTOTYPE
+- **Product/Application:** Online Patient Scheduling and Reminders
+- **Document ID:** ARD-OPSR
 - **Version:** 0.1
 - **Status:** Draft
 - **Architecture Owner:** TBD
 - **Contributors:** TBD
-- **Last Updated:** 2026-11-19
+- **Last Updated:** 2026-11-23
 - **Reference PRD:** `PRD.md`
 
 ---
 
 ## 1. Architecture Summary
 
-The architecture is a same-day, single-file, local HTML prototype for a simple todo list. The prototype is delivered as a root-level `todo-prototype.html` file that stakeholders open directly in Desktop Chrome. It uses plain semantic HTML, inline CSS, and vanilla JavaScript with in-memory task state only.
+Online Patient Scheduling and Reminders will be implemented by configuring and integrating a HIPAA-ready scheduling SaaS with minimal custom code. The vendor-hosted SaaS will provide the patient-facing mobile-first scheduling experience, staff/admin schedule and configuration views, OTP-based patient verification, and SMS/email reminder delivery under a signed BAA.
 
-The design intentionally avoids backend services, hosting, external dependencies, user accounts, persistence, analytics, formal accessibility validation, and production operations. The key drivers are fast stakeholder review, clear comparison against competitor todo apps, and reliable demonstration of add, blank-validation, complete, delete, and refresh-reset behavior.
+The existing EHR/practice management scheduling system remains the system of record for appointments and availability. The scheduling SaaS stores only operational copies needed for active scheduling workflows and synchronizes availability, booking, rescheduling, pending requests, and staff schedule view data with the EHR/practice management system, preferably through real-time APIs where available.
+
+Key drivers are HIPAA-compliant PHI handling, privacy-safe reminder content, a small-business-appropriate implementation footprint, staff visibility into appointments and pending requests, and a pilot rollout for one clinic location.
 
 ## 2. Architecture Drivers
 
-- PRD-FR-001 — Display an empty todo list with a prompt when the prototype first opens.
-- PRD-FR-002 — Allow a user to add a non-blank task.
-- PRD-FR-003 — Prevent blank task submissions with a simple inline error message.
-- PRD-FR-004 — Allow a user to mark a task complete.
-- PRD-FR-005 — Delete a task immediately without confirmation.
-- PRD-FR-006 — Reset tasks on browser refresh with no persistence.
-- PRD-NFR-001 — Implement as one self-contained HTML file with inline CSS and JavaScript and no backend dependency.
-- PRD-NFR-002 — Support the core interactions in Desktop Chrome.
-- PRD-NFR-003 — Do not require formal accessibility validation for this prototype phase.
-- CON-001 — The company context is a small business.
-- CON-002 — The prototype must be delivered same-day.
-- CON-003 — The prototype must be a single self-contained HTML file with inline CSS and JavaScript.
-- CON-004 — The prototype must not use a backend.
-- CON-005 — The prototype targets Desktop Chrome only.
-- CON-006 — The prototype must use a clean modern layout with simple responsive styling.
-- CON-007 — The prototype must not persist tasks after refresh.
-- CON-008 — Formal accessibility compliance is not required for this prototype phase.
+- PRD-FR-001 — Patients must be able to directly book available slots online for clinic-selected low-risk appointment types.
+- PRD-FR-002 — Patients must be able to submit pending appointment requests for appointment types requiring staff confirmation.
+- PRD-FR-003 — Patients must verify identity with an SMS or email OTP before rescheduling eligible appointments.
+- PRD-FR-004 — The platform must send SMS and email reminders without exposing PHI beyond clinic name in message bodies.
+- PRD-FR-005 — Staff need one daily schedule view containing confirmed appointments and pending requests grouped by provider and time.
+- PRD-FR-006 — Authorized clinic users must configure direct-bookable versus staff-confirmed appointment types.
+- PRD-NFR-001 — Patient scheduling data must be handled consistently with HIPAA requirements for PHI.
+- PRD-NFR-002 — Reminder content must avoid PHI and route details through secure links.
+- PRD-NFR-003 — Existing appointment details and rescheduling must be protected by OTP verification.
+- PRD-NFR-004 — Patient-facing scheduling flows must be mobile-first, responsive, and meet WCAG 2.1 AA.
+- CON-001 — The clinic operates in healthcare and must satisfy HIPAA requirements for protected health information.
+- CON-002 — The small-business context requires a minimum viable architecture with low operational burden.
+- CON-003 — The first release must integrate with the existing EHR/practice management scheduling system.
+- CON-004 — Reminder messages must not expose PHI beyond clinic name and must use secure links for appointment details.
+- CON-005 — Launch is a pilot within one clinic location; pilot date is TBD.
 
 ## 3. Architecture Principles
 
-1. Keep the prototype local, self-contained, and review-ready for same-day delivery.
-2. Prefer plain browser capabilities over frameworks, build tooling, hosting, or backend services.
+1. Keep the EHR/practice management system as the appointment and availability system of record.
+2. Prefer HIPAA-ready vendor-managed SaaS capabilities over custom build to reduce small-business operational burden.
 3. Reuse established repository and platform patterns where appropriate.
 4. Keep presentation, orchestration, domain, integration, and persistence concerns separated.
+5. Minimize PHI in SMS, email, logs, operational copies, and integrations.
+6. Require auditable access and modification trails for scheduling records and configuration changes.
 
 ## 4. System Context
 
 ### 4.1 Actors
 
-- General Prototype Visitor — Opens `todo-prototype.html` in Desktop Chrome and performs add, blank-validation, complete, delete, and refresh-reset interactions.
-- Small Business Stakeholder — Reviews the prototype, compares the core todo experience against competitor todo apps, and provides informal proceed/no-proceed feedback.
-- Developer or Prototyping Resource — Creates and shares the single HTML file for same-day stakeholder review.
+- Patient — Uses the patient-facing scheduling web experience to book appointments, submit pending requests, reschedule eligible appointments after OTP verification, and open secure reminder links.
+- Scheduling Staff — Uses the staff daily schedule view to see confirmed appointments, pending requests, and failed reminder delivery attempts.
+- Clinic Administrator — Configures appointment types as direct-bookable or staff-confirmed and helps approve pilot configuration.
+- Scheduling SaaS Vendor — Operates the HIPAA-ready scheduling platform, reminder service, hosting, rollback, infrastructure, and vendor-owned observability.
+- Clinic Technical/Operations Owner — Owns the EHR/practice management system relationship, integration configuration coordination, acceptance testing, and clinic-side operational review.
 
 ### 4.2 External Systems
 
 | ID | System | Purpose | Interface | Owner |
 |---|---|---|---|---|
-| EXT-001 | Desktop Chrome | Runtime environment for the local HTML prototype | Browser/File | Reviewer |
-| EXT-002 | Local File System | Opens the shared `todo-prototype.html` file directly | File | Reviewer |
+| EXT-001 | Existing EHR/practice management scheduling system | System of record for appointments and availability | REST/API preferred; exact method TBD | Clinic |
+| EXT-002 | HIPAA-ready scheduling SaaS | Patient scheduling, staff schedule view, appointment type configuration, OTP verification, reminders, audit reports | Web/REST/API | SaaS Vendor |
+| EXT-003 | SaaS reminder delivery service | SMS and email appointment reminders and OTP delivery | Vendor-managed messaging interface | SaaS Vendor |
+| EXT-004 | Clinic identity/staff roster process | Staff account provisioning, MFA enrollment, and role assignment in SaaS native accounts | Manual/admin configuration or vendor-supported import TBD | Clinic |
 
 ## 5. Technology Stack
 
 | Layer | Technology | Version/Constraint | Rationale |
 |---|---|---|---|
-| Frontend | Semantic HTML, inline CSS, vanilla JavaScript | Single self-contained `.html` file | Satisfies PRD-NFR-001 and supports same-day delivery without build tooling. |
-| Backend | None | Backend services are out of scope | Satisfies CON-004 and keeps the prototype local-only. |
-| Data | In-memory JavaScript array of task objects | Page-session only; no persistence after refresh | Satisfies PRD-FR-006 and CON-007. |
-| Hosting | None; opened locally in Desktop Chrome | Shared directly as a single file | Satisfies PRD-NFR-002 and the delivery decision. |
+| Frontend | Vendor-hosted responsive web UI from HIPAA-ready scheduling SaaS | Must support mobile-first patient flows and WCAG 2.1 AA validation | Meets PRD-NFR-004 while avoiding custom frontend build burden |
+| Backend | Vendor-hosted scheduling SaaS application services | Must support BAA, HIPAA security controls, OTP, scheduling rules, reminders, audit logs, and EHR integration | Delivers core scheduling capabilities with minimal custom code |
+| Data | Existing EHR/practice management system plus SaaS operational data store | EHR remains system of record; SaaS stores operational copies only while needed for active scheduling | Preserves existing clinical scheduling source of truth and limits duplicated PHI |
+| Hosting | Vendor-hosted HIPAA-ready SaaS under signed BAA | Vendor owns hosting, releases, rollback, and infrastructure controls | Reduces clinic operations burden and supports HIPAA requirements |
+| Integration | Real-time API integration where available | Exact EHR integration method is TBD pending EHR capability confirmation | Supports timely availability, booking, rescheduling, and schedule view sync |
+| Messaging | SaaS reminder service under BAA | SMS and email content must exclude PHI beyond clinic name and use secure links | Supports PRD-FR-004 and PRD-NFR-002 |
 
 ## 6. Logical Architecture
 
 ### 6.1 Components
 
-#### COMP-001 — HTML Document Shell
+#### COMP-001 — Patient Scheduling Web Experience
 
-- **Responsibility:** Provides the page structure, task input form, empty-state container, task list container, and inline script/style blocks.
-- **Inputs:** Local file open event, user-visible markup requirements.
-- **Outputs:** Rendered prototype shell in Desktop Chrome.
-- **Dependencies:** Desktop Chrome runtime.
-- **Repository Area:** `todo-prototype.html`
+- **Responsibility:** Provides mobile-first booking, appointment request, rescheduling, and secure reminder-link flows for patients.
+- **Inputs:** Appointment type selections, desired time slots, patient identity/contact information, OTP submissions, secure reminder-link tokens.
+- **Outputs:** Booking confirmations, pending request statuses, reschedule confirmations, secure appointment detail views after verification.
+- **Dependencies:** COMP-002, COMP-003, COMP-004, COMP-005, EXT-002.
+- **Repository Area:** `vendor-managed/TBD`
 
-#### COMP-002 — Todo State Controller
+#### COMP-002 — Scheduling Orchestration Service
 
-- **Responsibility:** Maintains the page-session task array and coordinates add, complete, delete, and reset-on-refresh behavior.
-- **Inputs:** Valid add-task commands, complete-task commands, delete-task commands.
-- **Outputs:** Updated in-memory task array and render requests.
-- **Dependencies:** COMP-003, COMP-004.
-- **Repository Area:** `todo-prototype.html`
+- **Responsibility:** Applies booking rules, appointment type configuration, cutoff rules, OTP verification status, and EHR synchronization workflow.
+- **Inputs:** Patient scheduling actions, staff/admin configuration, EHR availability and appointment data, reminder workflow triggers.
+- **Outputs:** Confirmed bookings, pending requests, rescheduled appointments, sync updates, reminder jobs, audit events.
+- **Dependencies:** COMP-003, COMP-004, COMP-005, COMP-006, EXT-001, EXT-002.
+- **Repository Area:** `vendor-managed/TBD`
 
-#### COMP-003 — Input Validation Handler
+#### COMP-003 — EHR Integration Adapter
 
-- **Responsibility:** Checks submitted task text for empty or whitespace-only values and controls the inline error message.
-- **Inputs:** Task input field value.
-- **Outputs:** Validation result and inline error visibility state.
-- **Dependencies:** COMP-001.
-- **Repository Area:** `todo-prototype.html`
+- **Responsibility:** Integrates with the EHR/practice management scheduling system for availability, booking, rescheduling, and schedule synchronization.
+- **Inputs:** Availability queries, booking/rescheduling commands, appointment updates, reconciliation requests.
+- **Outputs:** Availability results, appointment IDs/statuses, sync results, integration failure events.
+- **Dependencies:** EXT-001, EXT-002.
+- **Repository Area:** `vendor-managed/TBD`
 
-#### COMP-004 — Todo Renderer
+#### COMP-004 — Staff Schedule and Administration Experience
 
-- **Responsibility:** Renders the empty prompt, incomplete tasks, completed visual state, and delete controls from current in-memory state.
-- **Inputs:** In-memory task array and validation state.
-- **Outputs:** Updated DOM elements visible to the reviewer.
-- **Dependencies:** COMP-001, COMP-002.
-- **Repository Area:** `todo-prototype.html`
+- **Responsibility:** Gives staff a daily schedule view and allows authorized configuration of direct-bookable versus staff-confirmed appointment types.
+- **Inputs:** Staff credentials, role assignments, schedule date/provider filters, appointment type configuration changes.
+- **Outputs:** Daily schedule view, pending request visibility, failed reminder delivery visibility, configuration audit events.
+- **Dependencies:** COMP-002, COMP-005, COMP-006, EXT-002, EXT-004.
+- **Repository Area:** `vendor-managed/TBD`
+
+#### COMP-005 — Reminder and OTP Service
+
+- **Responsibility:** Sends SMS/email reminders and OTPs, enforces privacy-safe templates, and routes appointment details through secure links.
+- **Inputs:** Upcoming appointment events, patient contact information, consent/eligibility indicators where applicable, reminder templates, OTP requests.
+- **Outputs:** SMS/email reminders, OTP messages, delivery statuses, failed delivery events, secure link tokens.
+- **Dependencies:** COMP-002, EXT-003.
+- **Repository Area:** `vendor-managed/TBD`
+
+#### COMP-006 — Audit, Reporting, and Observability Dashboard
+
+- **Responsibility:** Provides audit evidence, operational reports, sync failure visibility, reminder failure visibility, and access event exports.
+- **Inputs:** Access events, scheduling modifications, configuration changes, integration results, reminder delivery statuses.
+- **Outputs:** Audit logs, exportable reports, vendor dashboard views, operational alerts or notifications.
+- **Dependencies:** EXT-002, EXT-003.
+- **Repository Area:** `vendor-managed/TBD`
 
 ### 6.2 Data Flow
 
-1. General Prototype Visitor opens `todo-prototype.html` from the local file system in Desktop Chrome.
-2. COMP-001 initializes an empty page-session state and displays the empty prompt.
-3. Visitor submits task text through the input form.
-4. COMP-003 validates that task text is not empty or whitespace-only.
-5. COMP-002 appends a task object with id, text, and completed state to the in-memory array.
-6. COMP-004 renders the current list and clears the empty prompt when tasks exist.
-7. Visitor activates a completion control; COMP-002 updates only the selected task state and COMP-004 rerenders the completed visual state.
-8. Visitor activates a delete button; COMP-002 removes only the selected task and COMP-004 rerenders the list or empty prompt.
-9. Browser refresh discards JavaScript memory and returns the prototype to its initial empty state.
+1. Patient sends appointment type, identity/contact data, and desired slot information to COMP-001.
+2. COMP-001 sends the scheduling request to COMP-002.
+3. COMP-002 checks appointment type rules from COMP-004 configuration.
+4. For direct-bookable appointment types, COMP-002 queries availability through COMP-003 against EXT-001.
+5. EXT-001 returns availability to COMP-003, which returns normalized availability to COMP-002 and COMP-001.
+6. Patient confirms a selected slot through COMP-001, and COMP-002 writes the booking through COMP-003 to EXT-001.
+7. EXT-001 returns booking status; COMP-002 updates SaaS operational copies and emits audit events to COMP-006.
+8. For staff-confirmed appointment types, COMP-002 creates a pending request and exposes it in COMP-004 until staff confirms or declines it.
+9. For rescheduling, COMP-001 requests OTP verification through COMP-005 before COMP-002 exposes eligible appointment actions.
+10. COMP-005 sends OTP by SMS or email through EXT-003 and returns verification status to COMP-002.
+11. COMP-002 applies the configurable cutoff, performs rescheduling through COMP-003 and EXT-001, and updates COMP-004.
+12. COMP-005 sends SMS/email reminders with clinic name and secure links only, records delivery status, and exposes failures through COMP-006 and COMP-004.
+13. Staff opens COMP-004 to view confirmed appointments and pending requests grouped by provider and time, using data synchronized from EXT-001 and SaaS operational state.
 
 ## 7. Architecture Decisions
 
-### ARD-DEC-001 — Deliver a Local Single-File Prototype
+### ARD-DEC-001 — Use HIPAA-Ready Scheduling SaaS With Minimal Custom Code
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-FR-006, PRD-NFR-001, PRD-NFR-002
+- **Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-003, PRD-FR-004, PRD-FR-005, PRD-FR-006, PRD-NFR-001, PRD-NFR-004
 
 **Decision**
 
-Deliver the prototype as a root-level `todo-prototype.html` file shared directly and opened locally in Desktop Chrome.
+The first release will configure and integrate a HIPAA-ready scheduling SaaS rather than building a fully custom scheduling application.
 
 **Rationale**
 
-The PRD requires same-day delivery, no backend, Desktop Chrome support, no persistence, and a self-contained file. Local file delivery avoids deployment overhead and keeps the review focused on core interactions.
+The clinic is a small business and needs online booking, rescheduling, reminders, staff schedule visibility, HIPAA controls, and EHR integration with a low operational burden.
 
 **Consequences**
 
-- Stakeholders can review without a server or hosting platform.
-- Browser and file-sharing behavior become part of the review experience.
-- Production deployment concerns are intentionally deferred.
+- Reduces custom development, hosting, release, and infrastructure responsibilities for the clinic.
+- Makes vendor BAA, security evidence, integration capabilities, and configurability critical selection criteria.
+- Limits architecture flexibility to vendor-supported workflow and integration patterns.
 
 **Alternatives Considered**
 
-- Internal static hosting — Not selected because hosting is unnecessary for same-day local review.
-- Public static URL — Not selected because public hosting adds avoidable exposure and operational overhead.
+- Custom web application integrated with EHR — Not selected because it increases delivery, security, compliance, and operations burden.
+- Standalone scheduling tool without EHR integration — Not selected because CON-003 requires EHR/practice management integration.
+- Full patient portal replacement — Not selected because the PRD explicitly excludes replacing the full patient portal.
 
-### ARD-DEC-002 — Use Plain HTML, Inline CSS, and Vanilla JavaScript
+### ARD-DEC-002 — Keep EHR/Practice Management System as System of Record
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-NFR-001, PRD-NFR-002
+- **Related Requirements:** PRD-FR-001, PRD-FR-003, PRD-FR-005, PRD-NFR-001
 
 **Decision**
 
-Implement the prototype with semantic HTML, inline CSS, and vanilla JavaScript in the same HTML file.
+The existing EHR/practice management scheduling system remains the system of record for appointments and availability. The scheduling SaaS stores operational copies only as needed for active scheduling workflows and staff visibility.
 
 **Rationale**
 
-This satisfies the single-file requirement while minimizing dependencies, setup, and implementation time.
+The clinic already relies on the EHR/practice management system for scheduling records, and the PRD requires integration rather than replacement.
 
 **Consequences**
 
-- No build tooling is required.
-- The implementation remains easy to inspect and share.
-- Larger production patterns such as modules, package management, and automated bundling are out of scope.
+- Reduces risk of conflicting appointment records.
+- Requires robust EHR integration and reconciliation behavior.
+- Availability and performance may depend on EHR API capabilities.
 
 **Alternatives Considered**
 
-- CDN framework — Not selected because it introduces an external dependency and supply-chain considerations.
-- Web components — Not selected because they add structure not needed for the small prototype.
+- Scheduling SaaS as system of record — Not selected because it would shift core scheduling authority away from the existing EHR/practice management system.
+- Dual-write between SaaS and EHR — Not selected because it increases conflict and reconciliation complexity.
 
-### ARD-DEC-003 — Store Tasks in Page-Session Memory Only
+### ARD-DEC-003 — Prefer Real-Time EHR Integration
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-FR-002, PRD-FR-004, PRD-FR-005, PRD-FR-006
+- **Related Requirements:** PRD-FR-001, PRD-FR-003, PRD-FR-005
 
 **Decision**
 
-Represent tasks as an in-memory JavaScript array of task objects with id, text, and completed state.
+If the EHR/practice management system supports multiple integration methods, the architecture will use real-time API integration for availability, booking, rescheduling, and schedule view synchronization.
 
 **Rationale**
 
-The task array cleanly supports independent add, complete, and delete behavior while ensuring refresh clears all tasks as required.
+Direct online booking and timely staff schedule visibility require current availability and prompt updates after patient and staff actions.
 
 **Consequences**
 
-- Refresh reset is automatic because JavaScript memory is discarded.
-- No migration, storage encryption, or data cleanup process is required.
-- User-entered tasks are lost on refresh by design.
+- Improves booking accuracy and staff schedule freshness.
+- Requires API capability, authentication setup, error handling, and integration monitoring.
+- If real-time APIs are unavailable, the integration approach remains an open architecture question.
 
 **Alternatives Considered**
 
-- DOM-only state — Not selected because it makes independent task updates less explicit.
-- localStorage — Not selected because persistence after refresh is explicitly out of scope.
+- Batch file import/export — Not selected as primary because it may not support timely availability and schedule updates.
+- Manual reconciliation — Not selected because it undermines online booking and staff workload reduction goals.
 
-### ARD-DEC-004 — Use Manual Desktop Chrome Smoke Testing as Acceptance Validation
+### ARD-DEC-004 — Use Vendor-Hosted SaaS Under Signed BAA
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-003, PRD-FR-004, PRD-FR-005, PRD-FR-006, PRD-NFR-002
+- **Related Requirements:** PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
 
 **Decision**
 
-Block acceptance on a manual Desktop Chrome smoke test covering initial empty state, add task, blank task validation, mark complete, delete, and refresh reset.
+The scheduling platform will be vendor-hosted as a HIPAA-ready SaaS under a signed BAA. The vendor owns SaaS hosting, release, rollback, and infrastructure operations.
 
 **Rationale**
 
-The artifact is a lightweight same-day prototype with no build pipeline, no framework, and no formal production readiness requirement.
+Vendor-hosted SaaS aligns with the small-business constraint and allows the clinic to rely on vendor-managed infrastructure controls, provided HIPAA security evidence is acceptable.
 
 **Consequences**
 
-- Validation is fast and aligned to stakeholder review needs.
-- There is no numeric code coverage gate.
-- Regression confidence is limited compared with automated test suites.
+- Vendor due diligence becomes a launch gate.
+- Clinic must manage configuration change control and acceptance testing.
+- Infrastructure details may be abstracted by vendor documentation rather than directly controlled by the clinic.
 
 **Alternatives Considered**
 
-- Automated unit tests plus smoke testing — Not selected because it adds setup beyond the agreed prototype scope.
-- Browser automation — Not selected because same-day manual review is sufficient for this phase.
+- Clinic-owned cloud hosting — Not selected because it increases operational complexity.
+- On-premises hosting — Not selected because it is inconsistent with the desired low-burden SaaS model.
 
-### ARD-DEC-005 — Omit Runtime Observability and Operational Telemetry
+### ARD-DEC-005 — Use SaaS Native Staff Accounts With MFA and RBAC
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-NFR-001, PRD-NFR-002
+- **Related Requirements:** PRD-FR-005, PRD-FR-006, PRD-NFR-001
 
 **Decision**
 
-Do not add logs, metrics, tracing, alerting, analytics, or external telemetry. Issues are observed manually during stakeholder review.
+Staff and administrator access will use scheduling SaaS native accounts with MFA and role-based access control.
 
 **Rationale**
 
-The prototype has no backend, hosting, users at scale, or production operations requirement.
+This approach avoids SSO implementation complexity during the first pilot while still requiring individual authentication, MFA, and role separation.
 
 **Consequences**
 
-- No operational monitoring setup is needed.
-- No analytics data is collected.
-- Stakeholder feedback and manual observation are the only review signals.
+- Staff provisioning and deprovisioning must be operationally controlled by the clinic.
+- Shared staff accounts are prohibited.
+- Future SSO may be considered after pilot if supported by vendor and clinic identity tooling.
 
 **Alternatives Considered**
 
-- Browser console logs — Not selected because they are not needed for stakeholder review.
-- External analytics endpoint — Not selected because analytics is out of scope.
+- SSO with clinic identity provider — Not selected for pilot because identity provider availability is not established.
+- Shared staff login — Not selected because it weakens auditability and HIPAA access controls.
 
-### ARD-DEC-006 — Use No External Dependencies and Maintain a Manual SBOM Entry
+### ARD-DEC-006 — Deliver Reminders Through SaaS Reminder Service
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-NFR-001
+- **Related Requirements:** PRD-FR-004, PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
 
 **Decision**
 
-Use no external runtime dependencies and record a manual SBOM entry for the single HTML artifact.
+SMS and email reminders and OTPs will be delivered through the HIPAA-ready scheduling SaaS reminder service under BAA.
 
 **Rationale**
 
-Avoiding dependencies reduces supply-chain risk while the manual SBOM entry documents the delivered artifact.
+Using the SaaS reminder service reduces integration complexity and centralizes privacy-safe templates, secure links, delivery status, and audit evidence.
 
 **Consequences**
 
-- CVE scanning has no package dependencies to evaluate.
-- The SBOM is manual rather than generated by a package manager.
-- Any future dependency addition must revisit scanning and SBOM controls.
+- Vendor reminder content controls and delivery reporting must be validated.
+- Reminder messages must exclude PHI beyond clinic name and include secure links only.
+- Failed delivery visibility is dependent on vendor dashboard/reporting capabilities.
 
 **Alternatives Considered**
 
-- No SBOM — Not selected because the architecture decision requires a manual SBOM entry.
-- Automated SBOM generation — Not selected because there is no package manifest or build system.
+- Separate SMS and email providers — Not selected for first release because it adds vendor and integration complexity.
+- Clinic existing messaging tools — Not selected because BAA, audit logging, and privacy-safe template enforcement are not confirmed.
 
-### ARD-DEC-007 — Skip Prototype Input Safety Controls Beyond Blank Validation
+### ARD-DEC-007 — No Bulk Data Migration for Pilot
 
 - **Status:** Accepted
-- **Related Requirements:** PRD-FR-003, PRD-NFR-001
+- **Related Requirements:** PRD-FR-001, PRD-FR-003, PRD-FR-005, PRD-NFR-001
 
 **Decision**
 
-The prototype will not add security-specific input safety controls beyond the required blank-task validation because it runs locally and is not production-ready.
+The pilot will not perform a bulk migration of scheduling history or patient records into the SaaS. The SaaS will read/sync appointments and availability from the EHR as needed for pilot workflows.
 
 **Rationale**
 
-The stakeholder decision confirmed that input safety controls are not required for the local file prototype.
+The EHR remains the system of record and the pilot scope should minimize duplicated PHI and migration risk.
 
 **Consequences**
 
-- The architecture remains minimal for same-day delivery.
-- Security hardening is not demonstrated in this prototype.
-- A future production version must revisit untrusted input handling.
+- Reduces migration complexity and PHI duplication.
+- Requires integration availability for active workflows.
+- Historical scheduling analytics in the SaaS may be limited during pilot.
 
 **Alternatives Considered**
 
-- Treat task text as untrusted and render only as text content — Not selected by stakeholder decision for this prototype phase.
-- Third-party sanitization library — Not selected because external dependencies are not used.
+- Full scheduling history migration — Not selected because it is unnecessary for pilot workflows and increases PHI exposure.
+- One-time import of scheduling data — Not selected unless later required by the selected vendor/EHR integration approach.
 
 ## 8. API and Integration Architecture
 
-### ARD-API-001 — Add Task UI Event
+### ARD-API-001 — EHR Availability Query
 
-- **Type:** Event
-- **Operation/Topic:** `submit todo form`
-- **Provider:** COMP-001
-- **Consumers:** COMP-003, COMP-002, COMP-004
-- **Authentication:** Not applicable; local prototype has no accounts.
-- **Versioning:** Not versioned; internal browser event contract within `todo-prototype.html`.
-
-**Request/Input Contract**
-
-Task text entered by the visitor in the input field. Blank and whitespace-only values are invalid per PRD-FR-003.
-
-**Response/Output Contract**
-
-For valid input, a new in-memory task object is created with id, text, and completed state set to incomplete, the input field clears, and the task list rerenders. For invalid input, no task is added and an inline error message is shown.
-
-**Error Handling**
-
-Blank or whitespace-only submissions are rejected inline. No retry, network error, or idempotency handling is required because the interaction is local and browser-only.
-
-### ARD-API-002 — Complete Task UI Event
-
-- **Type:** Event
-- **Operation/Topic:** `click complete control`
-- **Provider:** COMP-001
-- **Consumers:** COMP-002, COMP-004
-- **Authentication:** Not applicable; local prototype has no accounts.
-- **Versioning:** Not versioned; internal browser event contract within `todo-prototype.html`.
+- **Type:** REST
+- **Operation/Topic:** `GET /availability` or EHR/vendor equivalent TBD
+- **Provider:** EXT-001
+- **Consumers:** COMP-003, COMP-002
+- **Authentication:** EHR/vendor-supported secure service authentication TBD
+- **Versioning:** EHR/vendor API versioning TBD; changes must be reviewed before pilot release
 
 **Request/Input Contract**
 
-Selected task identifier from the rendered task item.
+Appointment type, provider/location where applicable, date/time range, and eligibility filters needed to return available slots. Exact EHR contract is TBD pending EHR integration confirmation.
 
 **Response/Output Contract**
 
-Only the selected task's completed state changes, and the renderer updates the selected task's visual completed state.
+Available appointment slots, provider/time metadata where available, and status/error details. Exact EHR contract is TBD pending EHR integration confirmation.
 
 **Error Handling**
 
-If the selected task is not present in memory, no task state changes are made. No retry or idempotency handling is required.
+Transient API failures must be retried according to vendor-supported policy. Patient-facing flows must not create bookings when availability cannot be confirmed. Failures must be logged and visible through operational reporting.
 
-### ARD-API-003 — Delete Task UI Event
+### ARD-API-002 — EHR Booking and Rescheduling Command
 
-- **Type:** Event
-- **Operation/Topic:** `click delete button`
-- **Provider:** COMP-001
-- **Consumers:** COMP-002, COMP-004
-- **Authentication:** Not applicable; local prototype has no accounts.
-- **Versioning:** Not versioned; internal browser event contract within `todo-prototype.html`.
+- **Type:** REST
+- **Operation/Topic:** `POST /appointments`, `PATCH /appointments/{id}` or EHR/vendor equivalent TBD
+- **Provider:** EXT-001
+- **Consumers:** COMP-003, COMP-002
+- **Authentication:** EHR/vendor-supported secure service authentication TBD
+- **Versioning:** EHR/vendor API versioning TBD; changes must be reviewed before pilot release
 
 **Request/Input Contract**
 
-Selected task identifier from the rendered task item.
+Patient identity/contact data required for scheduling, appointment type, selected slot, booking/rescheduling action, source channel, and idempotency/correlation identifier where supported. Exact EHR contract is TBD pending EHR integration confirmation.
 
 **Response/Output Contract**
 
-The selected task is removed immediately without confirmation, and the renderer updates the list or empty state.
+Appointment identifier, confirmation or pending status, updated appointment time, failure reason where applicable, and correlation identifier where supported. Exact EHR contract is TBD pending EHR integration confirmation.
 
 **Error Handling**
 
-If the selected task is not present in memory, no task state changes are made. No retry or idempotency handling is required.
+Booking and rescheduling commands must be idempotent where supported or protected from duplicate submission by the SaaS workflow. Conflicts must result in no confirmed booking and must prompt the patient to select another available slot or contact the clinic. Integration failures must be logged for staff/vendor follow-up.
+
+### ARD-API-003 — Schedule Synchronization and Staff View Feed
+
+- **Type:** REST
+- **Operation/Topic:** `GET /schedule?date={date}` or EHR/vendor equivalent TBD
+- **Provider:** EXT-001 and COMP-002
+- **Consumers:** COMP-004
+- **Authentication:** SaaS staff authentication with backend service authentication to EHR
+- **Versioning:** Vendor/EHR versioning TBD
+
+**Request/Input Contract**
+
+Date, provider, location, schedule status filters, and staff role context.
+
+**Response/Output Contract**
+
+Confirmed appointments and pending requests grouped or groupable by provider and time, with status metadata sufficient to distinguish confirmed versus pending items.
+
+**Error Handling**
+
+If synchronization fails, staff must see an operational indication or report of sync failure. The system must avoid displaying stale data as current without a freshness indicator where vendor capability supports it.
+
+### ARD-API-004 — Reminder and OTP Delivery
+
+- **Type:** REST
+- **Operation/Topic:** `POST /messages` or vendor-managed reminder workflow TBD
+- **Provider:** COMP-005 / EXT-003
+- **Consumers:** COMP-001, COMP-002
+- **Authentication:** Vendor-managed service authentication
+- **Versioning:** Vendor-managed API/workflow versioning TBD
+
+**Request/Input Contract**
+
+Recipient contact channel, purpose (reminder or OTP), approved template identifier, secure link token where applicable, and appointment reference without PHI in message body.
+
+**Response/Output Contract**
+
+Delivery accepted/rejected status, delivery attempt status where available, failure reason where available, and audit/correlation identifier.
+
+**Error Handling**
+
+Failed delivery attempts must be visible to staff or administrators. OTP failures must not expose appointment details or allow rescheduling. Reminder retries follow vendor-supported policy and must avoid duplicate or misleading reminders where possible.
+
+### ARD-API-005 — Audit and Operational Report Export
+
+- **Type:** File
+- **Operation/Topic:** `audit/report export` vendor capability TBD
+- **Provider:** COMP-006
+- **Consumers:** Clinic Technical/Operations Owner, Scheduling Staff, Security/Compliance Reviewer
+- **Authentication:** SaaS staff/admin MFA and RBAC
+- **Versioning:** Vendor report schema/version TBD
+
+**Request/Input Contract**
+
+Report type, date/time range, event types, and authorized user role.
+
+**Response/Output Contract**
+
+Exportable audit and operational reports for access events, scheduling changes, configuration changes, sync failures, and reminder failures.
+
+**Error Handling**
+
+Failed exports must be retryable or requestable from vendor support. Audit/report export limitations must be documented before pilot approval.
 
 ## 9. Data Architecture
 
-### DATA-001 — Task
+### DATA-001 — Appointment
 
-- **Purpose:** Represents one visitor-created todo item during the current browser page session.
-- **System of Record:** In-memory JavaScript array in `todo-prototype.html`.
+- **Purpose:** Represents confirmed clinic appointments used for booking, rescheduling, reminders, and staff schedule visibility.
+- **System of Record:** Existing EHR/practice management scheduling system.
+- **Classification:** Restricted
+- **Retention:** EHR retention policy TBD; SaaS operational copies retained only while needed for active scheduling, with exact retention TBD under compliance/security policy.
+- **Key Relationships:** Patient, provider, appointment type, location, reminder events, audit events.
+
+### DATA-002 — Pending Appointment Request
+
+- **Purpose:** Represents staff-confirmed appointment requests submitted online before confirmation or decline.
+- **System of Record:** Scheduling SaaS operational store until confirmed/declined, then synchronized to EHR where applicable.
+- **Classification:** Restricted
+- **Retention:** Retained only while needed for active scheduling workflow and audit evidence; exact retention TBD under compliance/security policy.
+- **Key Relationships:** Patient identity/contact data, requested appointment type, preferred time/provider where applicable, staff action, audit events.
+
+### DATA-003 — Patient Identity and Contact Data
+
+- **Purpose:** Supports online booking, OTP verification, reminders, and clinic follow-up.
+- **System of Record:** Existing EHR/practice management system where matched or created; SaaS stores operational copies needed for active workflows.
+- **Classification:** Restricted
+- **Retention:** EHR retention policy TBD; SaaS operational copies retained only while needed for active scheduling and reminder workflows; exact retention TBD.
+- **Key Relationships:** Appointment, pending request, OTP verification session, reminder delivery events.
+
+### DATA-004 — Appointment Type Configuration
+
+- **Purpose:** Defines whether each appointment type is direct-bookable or staff-confirmed.
+- **System of Record:** Scheduling SaaS configuration for online scheduling behavior, based on clinic-approved appointment type list.
 - **Classification:** Internal
-- **Retention:** Current browser page session only; discarded on refresh or tab close.
-- **Key Relationships:** Owned by the current local page session; rendered by COMP-004 and modified by COMP-002.
+- **Retention:** Retained while configuration is active and as required for configuration audit evidence; exact audit retention TBD.
+- **Key Relationships:** Appointment type, scheduling rule, admin user, audit event.
+
+### DATA-005 — Reminder and OTP Event
+
+- **Purpose:** Tracks reminder and OTP delivery attempts, verification status, failures, and secure-link access controls.
+- **System of Record:** Scheduling SaaS reminder service.
+- **Classification:** Restricted
+- **Retention:** Retained according to vendor-supported audit and operational retention policy; exact retention TBD.
+- **Key Relationships:** Appointment, patient contact channel, secure link token, delivery status, audit event.
+
+### DATA-006 — Audit Event
+
+- **Purpose:** Provides evidence of access, modification, configuration changes, sync failures, and reminder failures.
+- **System of Record:** Scheduling SaaS audit/reporting subsystem.
+- **Classification:** Confidential
+- **Retention:** Retained per HIPAA/security policy TBD and vendor capability; exact duration TBD.
+- **Key Relationships:** Staff/admin user, patient verification session, appointment, pending request, configuration change, integration event.
 
 ### Data Migration
 
 - **Required:** No
-- **Approach:** Not applicable because the prototype has no backend, database, localStorage persistence, or pre-existing data.
+- **Approach:** No bulk migration for the pilot. The SaaS will read/sync appointments and availability from the EHR/practice management system as needed for pilot workflows. Any vendor-required initial configuration import for appointment types, providers, or availability rules is treated as configuration setup, not bulk clinical data migration.
 
 ## 10. Security Architecture
 
-### ARD-SEC-001 — Local Static Prototype Security Boundary
+### ARD-SEC-001 — HIPAA-Compliant PHI Handling
 
-- **Related Requirements:** PRD-NFR-001, PRD-NFR-003
+- **Related Requirements:** PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
 
 The implementation must:
 
-- Run as a local static HTML file without backend services.
-- Avoid external runtime dependencies.
-- Avoid user accounts, authentication flows, authorization rules, persisted data, secrets, audit trails, and analytics endpoints.
-- Include a manual SBOM entry for the single HTML artifact.
+- Operate under a signed BAA with the scheduling SaaS vendor before any PHI is processed.
+- Protect patient scheduling data in transit and at rest.
+- Limit staff access to patient scheduling data through individual accounts, MFA, and role-based access control.
+- Require OTP verification before exposing existing appointment details through patient rescheduling or secure reminder-link flows.
+- Maintain audit evidence for access to and modification of scheduling records.
+- Minimize PHI in reminder content, logs, operational copies, and exports.
 
 The implementation must not:
 
-- Send task data to a backend or external endpoint.
-- Store task data in localStorage, cookies, IndexedDB, or a remote system.
-- Introduce third-party CDN dependencies without revisiting ARD-DEC-006.
-- Claim production security readiness or formal accessibility compliance for this prototype phase.
+- Use shared staff accounts for access to PHI or scheduling configuration.
+- Include appointment type, diagnosis, treatment details, or other detailed PHI in SMS or email reminder message bodies.
+- Expose existing appointment details before successful OTP verification.
+- Store bulk scheduling history in the SaaS for the pilot unless separately approved.
+
+### ARD-SEC-002 — Vendor Security Assurance Gate
+
+- **Related Requirements:** PRD-NFR-001
+
+The implementation must:
+
+- Obtain signed BAA, HIPAA security documentation, annual third-party security assessment evidence, CVE management process evidence, and SBOM or equivalent component inventory before pilot approval.
+- Verify that vendor-hosted services support encryption, audit logging, access controls, secure deletion/retention controls, and operational reporting appropriate for HIPAA-covered scheduling data.
+- Block pilot launch when known Critical or High security findings affect in-scope production workflows unless formally risk accepted by the clinic.
+
+The implementation must not:
+
+- Process PHI through vendors or sub-processors without acceptable compliance and security documentation.
+- Launch the pilot with unresolved Critical or High security findings unless formally risk accepted.
 
 ### Security Controls
 
-- **Authentication:** Not applicable; the prototype has no accounts or protected resources.
-- **Authorization:** Not applicable; all interactions are local to the open browser page.
-- **Secrets Management:** Not applicable; no secrets are used or stored.
-- **Encryption:** Not applicable for stored data because no persistence exists; transport encryption is not applicable because there is no network transport.
-- **Audit Logging:** Not applicable; no audit log is required for local prototype review.
-- **Dependency/CVE Scanning:** No external dependencies are used; blocking severity policy is not applicable for this prototype unless dependencies are added later.
-- **SBOM:** Required as a manual SBOM entry for `todo-prototype.html`.
+- **Authentication:** Patient rescheduling and secure reminder-link detail views require OTP verification by SMS or email; staff use SaaS native individual accounts with MFA.
+- **Authorization:** SaaS RBAC limits staff schedule access, failed reminder visibility, and appointment type configuration to authorized roles.
+- **Secrets Management:** Vendor manages SaaS platform secrets; EHR integration credentials must be stored in vendor-supported secure secret storage and must not be exposed to clinic users or logs.
+- **Encryption:** TLS is required for data in transit; vendor-managed encryption at rest is required for PHI and audit data.
+- **Audit Logging:** Access to scheduling records, booking/rescheduling actions, pending request actions, reminder failures, OTP/security events, and configuration changes must be auditable and exportable where vendor supports export.
+- **Dependency/CVE Scanning:** Vendor must provide evidence of CVE management and must address Critical and High findings affecting in-scope production workflows before pilot launch or obtain formal risk acceptance.
+- **SBOM:** Required as an SBOM or equivalent component inventory from the SaaS vendor.
 
 ## 11. Reliability, Performance, and Scalability
 
-### ARD-OPS-001 — Local File Availability
+### ARD-OPS-001 — SaaS Availability
 
-- **Target:** `todo-prototype.html` opens successfully in Desktop Chrome during stakeholder review.
-- **Validation Method:** Manual Desktop Chrome smoke test opens the file locally and verifies the initial empty state appears.
+- **Target:** Vendor-provided uptime commitment is TBD and required before pilot approval.
+- **Validation Method:** Review vendor SLA, status history where available, incident process documentation, and pilot operational reports.
 
-### ARD-OPS-002 — Core Interaction Responsiveness
+### ARD-OPS-002 — Patient Page Performance
 
-- **Target:** Add, blank-validation, complete, delete, and refresh-reset interactions complete without visible blocking or browser error during manual review.
-- **Validation Method:** Manual Desktop Chrome smoke test executes each required interaction and records pass/fail.
+- **Target:** Vendor-provided patient-facing response time commitment is TBD and required before pilot approval.
+- **Validation Method:** Vendor performance documentation plus pilot validation of booking, rescheduling, and secure-link flows on mobile and desktop browsers.
 
-### ARD-OPS-003 — Review-Scale Operation
+### ARD-OPS-003 — EHR Synchronization Latency
 
-- **Target:** The prototype supports local single-reviewer use in Desktop Chrome for stakeholder review.
-- **Validation Method:** Stakeholder or developer opens the file locally and performs the PRD-defined user journeys without backend or hosting services.
+- **Target:** Vendor/EHR sync latency commitment is TBD and required before pilot approval.
+- **Validation Method:** Integration testing for availability lookup, booking confirmation, rescheduling update, and staff schedule refresh flows.
+
+### ARD-OPS-004 — Reminder Delivery Reliability
+
+- **Target:** Vendor-provided SMS/email delivery reporting and delivery commitment are TBD and required before pilot approval.
+- **Validation Method:** Reminder delivery tests, failed delivery report review, and pilot monitoring of SMS/email delivery statuses.
+
+### ARD-OPS-005 — Operational Recovery and Rollback
+
+- **Target:** Vendor rollback and incident recovery commitments are TBD and required before pilot approval.
+- **Validation Method:** Review vendor rollback process, incident response procedure, and support escalation path before launch.
 
 ## 12. Observability
 
-- **Logging:** No runtime logging is required.
-- **Metrics:** No application metrics are required.
-- **Tracing:** No distributed or browser tracing is required.
-- **Alerting:** No alerting is required.
-- **Sensitive Data Restrictions:** The prototype must not send task text to external endpoints or persist it beyond the current page session.
+- **Logging:** Vendor must provide audit and operational logging for access events, scheduling changes, configuration changes, EHR sync failures, OTP events, and reminder delivery failures.
+- **Metrics:** Vendor dashboard or reports must expose sync failures, reminder failures, access/security events, and scheduling workflow outcomes needed for pilot monitoring; exact metrics are TBD pending vendor selection.
+- **Tracing:** End-to-end technical tracing across SaaS and EHR integration is vendor-dependent and TBD; at minimum, correlation identifiers or reportable event references are required for support investigation where supported.
+- **Alerting:** Vendor dashboard and exportable operational reports are required for sync failures, reminder failures, and access events; real-time alerting method is TBD pending vendor capability.
+- **Sensitive Data Restrictions:** Logs, metrics, traces, alerts, exports, SMS bodies, and email bodies must minimize PHI and must not include appointment type, diagnosis, treatment details, or other detailed PHI in reminder content.
 
 ## 13. Deployment Architecture
 
-- **Environments:** Local reviewer Desktop Chrome only; no dev, test, stage, or production hosted environments are required.
-- **Deployment Model:** Direct sharing of the root-level `todo-prototype.html` file for local opening.
-- **CI/CD:** No CI/CD pipeline is required for this same-day local prototype.
-- **Configuration Management:** Inline configuration only; no environment variables or external configuration files.
-- **Rollback:** Replace the shared HTML file with a previous known-good copy if needed.
-- **Infrastructure as Code:** Not applicable; no infrastructure is provisioned.
+- **Environments:** Vendor-provided environments are TBD; pilot requires at least a production environment and a non-production/test or vendor-supported validation path before production configuration changes.
+- **Deployment Model:** Vendor-hosted HIPAA-ready SaaS under signed BAA.
+- **CI/CD:** Vendor owns SaaS release pipelines; clinic owns configuration change control and acceptance testing for scheduling rules, reminder templates, EHR integration behavior, and pilot readiness.
+- **Configuration Management:** Appointment type settings, rescheduling cutoff rules, reminder templates, staff roles, and EHR integration configuration must be controlled through authorized SaaS administration with auditable changes.
+- **Rollback:** Vendor owns SaaS platform rollback; clinic configuration rollback must use vendor-supported configuration history, backup/export, or documented manual rollback steps TBD.
+- **Infrastructure as Code:** Vendor-owned and not directly managed by the clinic; vendor infrastructure control evidence is required through security/compliance documentation.
 
 ## 14. Testing Architecture
 
 Required test levels:
 
-- Unit tests — Not required for this prototype.
-- Integration tests — Not required beyond manual verification of integrated UI interactions in Desktop Chrome.
-- Contract tests — Not required because there are no external APIs.
-- End-to-end tests — Manual Desktop Chrome smoke test is required.
-- Security tests — Not required beyond verifying no external dependencies, no backend calls, no persistence, and manual SBOM entry.
-- Performance tests, where applicable — Manual confirmation that core interactions complete without visible blocking or browser error.
+- Unit tests
+- Integration tests
+- Contract tests
+- End-to-end tests
+- Security tests
+- Performance tests, where applicable
 
 Minimum quality expectations:
 
-- **Coverage Threshold:** No numeric coverage threshold; acceptance is manual Desktop Chrome smoke testing only.
-- **Blocking Security Severity:** Not applicable while no external dependencies are used; if dependencies are added later, this must be reopened under Open Architecture Questions.
-- **Required Build/Lint Checks:** No build or lint checks are required; the single HTML file must pass the manual smoke test.
+- **Coverage Threshold:** Policy-based threshold: 100% acceptance coverage for Must-priority PRD requirements in clinic/vendor acceptance testing; vendor internal unit/code coverage percentage is TBD and may be evidenced through vendor quality documentation where available.
+- **Blocking Security Severity:** Known Critical or High security findings affecting in-scope production workflows block pilot launch unless formally risk accepted by the clinic.
+- **Required Build/Lint Checks:** Vendor standard build, lint, automated test, dependency/CVE scanning, and release checks must be evidenced through vendor assurance documentation; clinic configuration changes require peer review or authorized approval plus successful acceptance tests.
+
+Pilot launch is blocked until acceptance tests for all Must requirements, EHR integration tests, reminder delivery tests, WCAG 2.1 AA checks, HIPAA/privacy review, and Critical/High security finding review are complete.
 
 ## 15. Architecture Constraints
 
-- ARC-CON-001 — The company context is a small business.
-- ARC-CON-002 — The prototype must be delivered same-day.
-- ARC-CON-003 — The prototype must be implemented as one self-contained HTML file with inline CSS and JavaScript.
-- ARC-CON-004 — The prototype must not use a backend service.
-- ARC-CON-005 — The prototype must target Desktop Chrome only.
-- ARC-CON-006 — The prototype must use a clean modern layout with simple responsive styling.
-- ARC-CON-007 — The prototype must not persist tasks after refresh.
-- ARC-CON-008 — Formal accessibility compliance is not required for this prototype phase.
-- ARC-CON-009 — The artifact path is `todo-prototype.html` at the repository or delivery package root.
-- ARC-CON-010 — The prototype must use no external runtime dependencies.
-- ARC-CON-011 — The prototype must include a manual SBOM entry for the single HTML artifact.
+- ARC-CON-001 — The architecture must satisfy HIPAA obligations for PHI handled in patient scheduling workflows.
+- ARC-CON-002 — The architecture must use a small-business-appropriate operating model with minimal custom code and vendor-managed SaaS operations where feasible.
+- ARC-CON-003 — The first release must integrate with the existing EHR/practice management scheduling system.
+- ARC-CON-004 — The existing EHR/practice management system remains the system of record for appointments and availability.
+- ARC-CON-005 — SMS and email reminder bodies must not expose PHI beyond clinic name and must route appointment details through secure links.
+- ARC-CON-006 — Patient rescheduling and secure reminder-link detail access require OTP verification by SMS or email.
+- ARC-CON-007 — The first launch is a pilot within one clinic location; pilot date is TBD.
+- ARC-CON-008 — The vendor-hosted SaaS must operate under a signed BAA before processing PHI.
+- ARC-CON-009 — Staff access must use individual accounts, MFA, RBAC, and auditable activity.
+- ARC-CON-010 — No bulk scheduling history migration is planned for the pilot.
 
 ## 16. Risks and Trade-offs
 
 | ID | Risk/Trade-off | Impact | Mitigation |
 |---|---|---|---|
-| ARC-RISK-001 | Stakeholders expect production-level features from a prototype. | Could cause scope confusion during review. | Clearly label the artifact and review discussion as prototype-only using the PRD scope. |
-| ARC-RISK-002 | Lack of formal metrics makes decision quality subjective. | Proceed/no-proceed decision may depend on qualitative feedback only. | Capture informal stakeholder feedback and the review outcome. |
-| ARC-RISK-003 | Desktop Chrome-only support limits review coverage. | Behavior in other browsers is not validated. | Confirm reviewers use Desktop Chrome as specified by PRD-NFR-002. |
-| ARC-RISK-004 | No persistence after refresh may be mistaken for a defect. | Reviewers may think tasks were lost unexpectedly. | Communicate reset-on-refresh behavior as an intentional PRD-FR-006 constraint. |
-| ARC-RISK-005 | Skipping input safety controls limits security representativeness. | The prototype does not demonstrate production-safe handling of untrusted input. | Revisit input handling before any production implementation. |
-| ARC-RISK-006 | No automated tests limits regression confidence. | Manual-only validation can miss implementation defects. | Execute the required Desktop Chrome smoke test before acceptance. |
+| ARC-RISK-001 | EHR/practice management integration capabilities may not support real-time availability, booking, and rescheduling | Could force batch/manual workarounds and weaken patient/staff experience | Confirm EHR integration method before implementation commitment and document fallback before pilot approval |
+| ARC-RISK-002 | Vendor SaaS workflow may not exactly match clinic scheduling rules | Could require process changes or scope reduction | Validate appointment type configuration, cutoff rules, pending requests, and staff view during vendor selection and acceptance testing |
+| ARC-RISK-003 | Reminder or secure-link configuration could accidentally expose PHI | High compliance/privacy impact | Lock templates, require HIPAA/privacy review, validate messages, and route details only after OTP verification |
+| ARC-RISK-004 | Vendor security evidence may be insufficient for HIPAA risk expectations | Pilot may be delayed or vendor rejected | Require BAA, HIPAA documentation, third-party assessment, CVE process, and SBOM/equivalent inventory before approval |
+| ARC-RISK-005 | SaaS operational copies introduce duplicated PHI outside the EHR | Increases privacy, retention, and breach scope | Minimize operational copies, avoid bulk migration, define retention/deletion policy, and audit vendor storage controls |
+| ARC-RISK-006 | Vendor-hosted model limits clinic control over CI/CD, infrastructure, and detailed observability | Some controls depend on vendor transparency | Use contractual/security review gates, vendor reports, operational dashboards, and acceptance testing |
+| ARC-RISK-007 | Staff provisioning/deprovisioning in native SaaS accounts may be missed | Former staff could retain inappropriate access | Establish clinic-owned account lifecycle process with MFA/RBAC review before pilot |
+| ARC-RISK-008 | Success and reliability targets remain TBD until baseline/vendor commitments are available | Pilot readiness criteria may be incomplete | Track open questions with owners and require targets/commitments before pilot approval |
 
 ## 17. Open Architecture Questions
 
 | ID | Question | Owner | Status | Decision/Due Date |
 |---|---|---|---|---|
-| ARC-OQ-001 | No open architecture questions identified after interview; proceed with documented decisions. | Architecture Owner | Closed | 2026-11-19 |
+| ARC-OQ-001 | Who is the named Architecture Owner for this ARD? | Business Sponsor | Open | TBD |
+| ARC-OQ-002 | Who are the named ARD contributors and approval reviewers? | Business Sponsor | Open | TBD |
+| ARC-OQ-003 | What existing EHR/practice management system will be integrated and what integration method is available? | Technical Owner | Open | TBD |
+| ARC-OQ-004 | What exact EHR API/file contracts, authentication method, versioning strategy, and rate limits apply? | Technical Owner | Open | Before implementation commitment |
+| ARC-OQ-005 | What is the vendor-provided uptime SLA for the pilot and production service? | SaaS Vendor | Open | Before pilot approval |
+| ARC-OQ-006 | What is the vendor-provided patient-facing response time target? | SaaS Vendor | Open | Before pilot approval |
+| ARC-OQ-007 | What is the vendor/EHR synchronization latency target for booking, rescheduling, and staff schedule view updates? | SaaS Vendor / Technical Owner | Open | Before pilot approval |
+| ARC-OQ-008 | What is the exact retention/deletion policy for SaaS operational copies, reminder/OTP events, and audit logs? | Security/Compliance Reviewer | Open | Before pilot approval |
+| ARC-OQ-009 | What vendor environments are available for non-production testing and acceptance validation? | SaaS Vendor | Open | Before pilot approval |
+| ARC-OQ-010 | What vendor-supported rollback approach exists for platform releases and clinic configuration changes? | SaaS Vendor | Open | Before pilot approval |
+| ARC-OQ-011 | What exact real-time alerting, reporting exports, and correlation identifiers does the SaaS provide? | SaaS Vendor | Open | Before pilot approval |
+| ARC-OQ-012 | What pilot launch date and clinic location will be used? | Business Sponsor | Open | TBD |
+| ARC-OQ-013 | What exact appointment types are direct-bookable versus staff-confirmed at pilot launch? | Clinic Administrator | Open | Before pilot approval |
+| ARC-OQ-014 | What is the configurable cutoff for online rescheduling before appointment time? | Clinic Administrator | Open | Before pilot approval |
+| ARC-OQ-015 | What baseline and pilot targets will be set for KPI-001 through KPI-004? | Product Owner | Open | Before pilot approval |
 
 ## 18. Feature Mapping
 
 | Feature | Relevant Components | Decision IDs | Interface IDs | Security IDs |
 |---|---|---|---|---|
-| FEAT-001 | COMP-001, COMP-002, COMP-003, COMP-004 | ARD-DEC-001, ARD-DEC-002, ARD-DEC-003, ARD-DEC-004, ARD-DEC-005, ARD-DEC-006, ARD-DEC-007 | ARD-API-001, ARD-API-002, ARD-API-003 | ARD-SEC-001 |
+| FEAT-001 | COMP-001, COMP-002, COMP-003, COMP-004, COMP-006 | ARD-DEC-001, ARD-DEC-002, ARD-DEC-003, ARD-DEC-004 | ARD-API-001, ARD-API-002, ARD-API-003, ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
+| FEAT-002 | COMP-001, COMP-002, COMP-004, COMP-006 | ARD-DEC-001, ARD-DEC-002, ARD-DEC-004 | ARD-API-003, ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
+| FEAT-003 | COMP-001, COMP-002, COMP-003, COMP-005, COMP-006 | ARD-DEC-001, ARD-DEC-002, ARD-DEC-003, ARD-DEC-004, ARD-DEC-006 | ARD-API-001, ARD-API-002, ARD-API-004, ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
+| FEAT-004 | COMP-001, COMP-002, COMP-005, COMP-006 | ARD-DEC-001, ARD-DEC-004, ARD-DEC-006 | ARD-API-004, ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
+| FEAT-005 | COMP-002, COMP-003, COMP-004, COMP-006 | ARD-DEC-001, ARD-DEC-002, ARD-DEC-003, ARD-DEC-005 | ARD-API-003, ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
+| FEAT-006 | COMP-002, COMP-004, COMP-006 | ARD-DEC-001, ARD-DEC-004, ARD-DEC-005 | ARD-API-005 | ARD-SEC-001, ARD-SEC-002 |
 
 ## 19. Approval
 

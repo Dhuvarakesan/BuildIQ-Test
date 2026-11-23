@@ -1,0 +1,97 @@
+# Account Lifecycle Procedure
+
+Purpose: document the clinic-owned process for provisioning, changing, reviewing, and deprovisioning SaaS-native staff and administrator accounts for the pilot.
+
+Scope:
+- Pilot clinic location only.
+- HIPAA-ready scheduling SaaS staff/admin accounts.
+- Clinic identity/staff roster process.
+- Schedule viewing, failed reminder follow-up, appointment type configuration, and audit reporting workflows.
+
+Related requirement:
+- REQ-003
+
+Related interfaces:
+- EXT-002: HIPAA-ready scheduling SaaS
+- EXT-004: Clinic identity/staff roster process
+- ARD-API-005: Audit/report export vendor capability TBD
+
+## Ownership
+
+| Responsibility | Owner | Backup | Evidence retained |
+|---|---|---|---|
+| Approve new staff/admin access | Clinic administrator | Clinic compliance owner | Access request record |
+| Validate staff roster status | Clinic operations owner | Clinic administrator | Roster confirmation |
+| Create, update, or disable SaaS account | Clinic administrator | Authorized SaaS vendor support, if contractually approved | SaaS account activity audit |
+| Enroll and verify MFA | Account holder and clinic administrator | Clinic technical owner | MFA status in SaaS admin view |
+| Assign RBAC role | Clinic administrator | Clinic technical owner | Role assignment audit |
+| Review audit and access reports | Clinic compliance owner | Security reviewer | Audit export or report reference |
+| Approve deprovisioning completion | Clinic administrator | Clinic compliance owner | Disabled account record |
+
+## Provisioning Procedure
+
+1. Confirm the user is active in the clinic-owned staff roster for the pilot clinic location.
+2. Record the access request with the user's legal name, clinic email address, job function, requested role, approving clinic administrator, and request date.
+3. Confirm that the requested role maps to the staff role matrix and the minimum permissions needed for the user's job function.
+4. Create an individual named SaaS account. Do not create, reuse, or enable shared staff accounts.
+5. Require MFA enrollment before granting access to schedule, reminder follow-up, configuration, or audit workflows.
+6. Assign RBAC role:
+   - Scheduling staff receive ROLE-SCHEDULING-STAFF by default.
+   - Appointment type configuration access requires explicit ROLE-APPT-TYPE-CONFIG or ROLE-CLINIC-ADMIN approval.
+   - Audit report access requires ROLE-CLINIC-ADMIN or ROLE-AUDIT-REVIEWER approval.
+7. Validate access with a least-privilege check:
+   - Scheduling staff can view the daily schedule and failed reminder follow-up items.
+   - Scheduling staff cannot modify appointment type configuration unless explicitly assigned ROLE-APPT-TYPE-CONFIG.
+   - Clinic administrators can access appointment type configuration with MFA enabled and auditable activity.
+8. Record the provisioned account in vendor-managed/staff-admin-accounts.
+
+## Role Change Procedure
+
+1. Require a new access request for any role expansion, including appointment type configuration access.
+2. Confirm business need and approving clinic administrator.
+3. Apply the role change in the SaaS using a named administrator account with MFA.
+4. Confirm the SaaS audit trail records the named administrator, changed user, previous role, new role, date, and reason where vendor capability supports it.
+5. Update vendor-managed/staff-admin-accounts with the new role and approval reference.
+
+## Deprovisioning Procedure
+
+1. Trigger deprovisioning when a user leaves the clinic, changes out of a scheduling role, no longer supports the pilot, or fails a periodic access review.
+2. Disable SaaS account access as soon as operationally possible, and no later than the clinic's same-business-day access removal expectation for pilot workflows.
+3. Revoke all roles, active sessions, tokens, and recovery factors where vendor capability supports it.
+4. Preserve required audit logs according to vendor retention commitments and clinic compliance requirements.
+5. Update vendor-managed/staff-admin-accounts with disabled status, removal date, remover, and reason.
+6. Confirm no shared or generic account is substituted for the disabled user.
+
+## Periodic Review Procedure
+
+Frequency:
+- Before pilot launch.
+- Monthly during the pilot.
+- Immediately after staff roster changes affecting pilot access.
+- After any security incident, suspected inappropriate access, or vendor audit finding.
+
+Review steps:
+1. Compare vendor-managed/staff-admin-accounts against the clinic-owned staff roster.
+2. Confirm each active account belongs to a named individual.
+3. Confirm MFA status is enabled for each active staff/admin account.
+4. Confirm RBAC assignments still match the user's job function.
+5. Confirm scheduling staff do not have appointment type configuration access unless explicitly approved.
+6. Confirm administrator configuration activity is auditable through vendor-supported logs or exports.
+7. Disable unneeded accounts and remove unneeded roles.
+8. Record reviewer, review date, findings, remediation owner, and completion date.
+
+## Shared Account Prohibition
+
+The pilot must not use shared staff accounts. Any account that represents a team, role, queue, workstation, department, temporary placeholder, vendor demo login, or generic administrator is not authorized for pilot workflows.
+
+Examples of prohibited account names:
+- scheduler
+- frontdesk
+- clinicstaff
+- admin
+- temp
+- test
+- vendor-demo
+
+If a shared account is discovered, the clinic administrator must disable it for pilot workflows, create individual named accounts if needed, verify MFA and RBAC, and document the correction before pilot use continues.
+

@@ -1,0 +1,211 @@
+staff_admin_shell:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-005
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_staff_admin_console
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+
+scope:
+  personas:
+    - scheduling_staff
+    - clinic_administrator
+    - appointment_type_configuration_manager
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  phi_policy: active_scheduling_workflows_only
+  auditability_required: true
+
+responsive_shell:
+  prototype_alignment:
+    sticky_top_bar: enabled
+    persona_switcher: enabled_for_authorized_staff_review_and_testing
+    left_navigation_desktop: enabled
+    mobile_navigation: collapsible_vendor_equivalent
+    card_based_content_regions: enabled
+    status_panels: enabled
+    tag_badges: enabled
+    modal_confirmation_pattern: enabled_for_configuration_changes
+  breakpoints:
+    mobile_first: true
+    mobile_navigation_max_width_px: 767
+    desktop_left_navigation_min_width_px: 768
+  layout_rules:
+    - staff_daily_schedule_is_first_staff_navigation_entry
+    - admin_appointment_types_is_first_admin_configuration_entry
+    - operational_status_panels_show_sync_freshness_without_raw_ehr_payloads
+    - destructive_or_configuration_changes_require_modal_confirmation
+    - tables_or_schedule_lists_reflow_to_cards_on_mobile
+
+navigation:
+  landmark_label: Staff and administration navigation
+  persona_groups:
+    scheduling_staff:
+      role_required: ROLE-SCHEDULING-STAFF
+      entries:
+        - id: nav-daily-schedule
+          label: Daily schedule
+          route_or_vendor_screen: staff.daily_schedule
+          order: 1
+          icon: calendar_days_vendor_equivalent
+          destination_heading: Daily schedule
+          allowed_actions:
+            - view_confirmed_appointments
+            - view_pending_requests
+            - view_failed_reminder_follow_up
+            - confirm_or_decline_staff_confirmed_requests_when_authorized
+    clinic_administrator:
+      role_required: ROLE-CLINIC-ADMIN
+      entries:
+        - id: nav-appointment-types
+          label: Appointment types
+          route_or_vendor_screen: admin.appointment_type_configuration
+          order: 1
+          icon: settings_vendor_equivalent
+          destination_heading: Appointment types
+          allowed_actions:
+            - view_appointment_type_configuration
+            - enable_or_disable_direct_bookable_status
+            - configure_staff_confirmation_requirement
+            - review_configuration_change_audit_events
+    appointment_type_configuration_manager:
+      role_required: ROLE-APPT-TYPE-CONFIG
+      entries:
+        - id: nav-appointment-types
+          label: Appointment types
+          route_or_vendor_screen: admin.appointment_type_configuration
+          order: 1
+          icon: settings_vendor_equivalent
+          destination_heading: Appointment types
+          allowed_actions:
+            - view_appointment_type_configuration
+            - enable_or_disable_direct_bookable_status
+            - configure_staff_confirmation_requirement
+
+pilot_pages:
+  - id: staff-daily-schedule
+    persona: scheduling_staff
+    nav_entry: nav-daily-schedule
+    semantic_heading_level_1: Daily schedule
+    required_components:
+      - status_panel: ehr_schedule_feed_freshness
+      - card: today_confirmed_appointments
+      - card: pending_appointment_requests
+      - card: failed_reminder_follow_up
+      - tag_badges: confirmed_pending_rescheduled_sync_exception
+      - modal: request_action_confirmation
+    data_minimization:
+      show_only_active_scheduling_workflow_fields: true
+      hide_raw_ehr_payloads: true
+      reminder_message_body_not_displayed_by_default: true
+  - id: admin-appointment-types
+    persona: clinic_administrator
+    nav_entry: nav-appointment-types
+    semantic_heading_level_1: Appointment types
+    required_components:
+      - status_panel: configuration_publish_state
+      - card: appointment_type_list
+      - card: direct_bookable_settings
+      - card: staff_confirmation_settings
+      - tag_badges: direct_bookable_staff_confirmed_inactive
+      - modal: configuration_change_confirmation
+    forms:
+      labels_required: true
+      change_reason_or_vendor_audit_note_required_where_supported: true
+      inline_error_text_required: true
+    audit:
+      configuration_change_events_required: true
+      named_user_required: true
+
+accessibility:
+  skip_link:
+    enabled: true
+    label: Skip to staff content
+    target: main_staff_admin_content
+    visible_on_focus: true
+  landmarks:
+    header: enabled
+    nav: enabled
+    main: enabled
+    complementary: enabled_where_status_panel_is_present
+  keyboard_navigation:
+    tab_order:
+      - skip_link
+      - top_bar_persona_switcher_if_available
+      - staff_admin_navigation
+      - main_page_heading
+      - schedule_or_configuration_cards
+      - forms_and_buttons
+      - modal_controls_when_open
+    focus_visible_required: true
+    focus_trap_required_for_modals: true
+    escape_closes_non_destructive_modals: true
+    table_rows_or_cards_expose_keyboard_actions: true
+  touch_targets:
+    minimum_width_px: 44
+    minimum_height_px: 44
+  heading_policy:
+    exactly_one_h1_per_pilot_page: true
+    headings_do_not_skip_levels: true
+  form_policy:
+    visible_or_programmatic_labels_required: true
+    required_fields_identified_programmatically: true
+    errors_announced_to_assistive_technology: true
+
+theme:
+  supported_modes:
+    - light
+    - dark
+    - vendor_high_contrast_equivalent
+  default_mode: light
+  respects_system_preference: true
+  minimum_contrast:
+    normal_text: WCAG_2_1_AA_4_5_to_1
+    large_text_and_ui_state: WCAG_2_1_AA_3_to_1
+    focus_indicator: visible_against_adjacent_colors
+
+wcag_validation:
+  standard: WCAG_2_1_AA
+  status: required_passing_before_launch
+  pilot_pages_in_scope:
+    - staff-daily-schedule
+    - admin-appointment-types
+  required_evidence:
+    automated_scan:
+      tool: vendor_supported_axe_lighthouse_or_equivalent
+      result_required: pass_no_critical_or_serious_violations
+    keyboard_walkthrough:
+      result_required: pass
+      checkpoints:
+        - skip_link_reaches_main_content
+        - staff_admin_navigation_reachable
+        - schedule_cards_and_action_buttons_reachable
+        - appointment_type_forms_reachable_and_labeled
+        - confirmation_modal_controls_reachable_labeled_and_focus_trapped
+    screen_reader_smoke_test:
+      result_required: pass
+      checkpoints:
+        - page_heading_announced
+        - navigation_label_announced
+        - schedule_or_configuration_status_announced
+        - modal_title_and_confirmation_state_announced
+  launch_gate:
+    block_launch_until_validation_passes: true
+    unresolved_wcag_aa_failure_blocks_pilot: true
+
+acceptance_mapping:
+  AC-010:
+    staff_navigation_entries:
+      - Daily schedule
+    administrator_navigation_entries:
+      - Appointment types
+  AC-011:
+    keyboard_and_focus_controls:
+      - skip_link
+      - visible_focus_state
+      - reachable_navigation
+      - reachable_schedule_cards
+      - reachable_configuration_forms
+      - reachable_modal_controls
+  AC-012:
+    wcag_2_1_aa_gate: required_passing_before_launch

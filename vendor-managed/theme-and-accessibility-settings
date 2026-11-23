@@ -1,0 +1,178 @@
+theme_and_accessibility_settings:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-005
+  vendor_surface: shared_patient_staff_admin_shell_theme
+  status: configured_pending_vendor_application_and_validation
+  last_updated: "2026-11-23"
+
+prototype_theme_alignment:
+  top_bar:
+    sticky: true
+    height_min_px: 64
+    includes_persona_switcher: true
+    brand_text_phi_free: true
+  navigation:
+    desktop_pattern: left_navigation
+    mobile_pattern: vendor_supported_collapsible_or_bottom_navigation
+    active_entry_uses_text_and_non_color_indicator: true
+  components:
+    cards:
+      enabled: true
+      max_border_radius_px: 8
+      clear_heading_required: true
+    status_panels:
+      enabled: true
+      status_communicated_by_text_and_icon_or_badge: true
+      sync_failure_messages_phi_minimized: true
+    tag_badges:
+      enabled: true
+      labels:
+        - Direct bookable
+        - Staff confirmation
+        - Pending
+        - Confirmed
+        - Rescheduled
+        - Sync exception
+      color_only_status_prohibited: true
+    selected_slot_buttons:
+      enabled: true
+      aria_pressed_or_vendor_selected_state_required: true
+      minimum_width_px: 44
+      minimum_height_px: 44
+    modal_confirmations:
+      enabled: true
+      title_required: true
+      descriptive_body_required: true
+      primary_and_cancel_controls_required: true
+      focus_trap_required: true
+      return_focus_to_invoker_on_close: true
+
+color_modes:
+  light:
+    color_scheme: light
+    background: vendor_surface_default_light
+    text: vendor_text_default_light
+    accent: vendor_accessible_primary
+    minimum_contrast:
+      normal_text: 4.5
+      large_text: 3.0
+      ui_components_and_focus_indicators: 3.0
+  dark:
+    color_scheme: dark
+    background: vendor_surface_default_dark
+    text: vendor_text_default_dark
+    accent: vendor_accessible_primary_dark
+    minimum_contrast:
+      normal_text: 4.5
+      large_text: 3.0
+      ui_components_and_focus_indicators: 3.0
+  high_contrast:
+    vendor_equivalent_required: true
+    honors_forced_colors_where_supported: true
+    custom_focus_outline_not_suppressed: true
+
+accessibility_baseline:
+  standard: WCAG_2_1_AA
+  mobile_first_responsive: true
+  skip_links:
+    required: true
+    visible_on_focus: true
+    targets:
+      patient_shell: main_patient_scheduling_content
+      staff_admin_shell: main_staff_admin_content
+  focus_states:
+    visible_focus_required_for:
+      - links
+      - navigation_entries
+      - persona_switcher
+      - text_inputs
+      - selects
+      - checkboxes
+      - slot_buttons
+      - primary_buttons
+      - secondary_buttons
+      - modal_close_and_confirmation_controls
+    minimum_indicator: vendor_default_or_2px_outline_with_3_to_1_adjacent_contrast
+    focus_not_obscured: true
+  semantic_structure:
+    use_header_nav_main_footer_or_vendor_equivalent: true
+    one_h1_per_page: true
+    headings_in_order: true
+    nav_landmarks_have_accessible_names: true
+    status_regions_have_accessible_names: true
+  forms:
+    labels_required: true
+    instructions_associated_with_inputs: true
+    errors_programmatically_associated: true
+    required_fields_programmatically_indicated: true
+    autocomplete_used_for_patient_contact_fields_where_safe: true
+  keyboard:
+    all_interactive_controls_reachable: true
+    no_keyboard_traps_except_modal_focus_trap: true
+    modal_escape_or_cancel_path_required: true
+    logical_tab_order_matches_visual_order: true
+  touch:
+    minimum_target_width_px: 44
+    minimum_target_height_px: 44
+    spacing_prevents_accidental_activation: true
+  reduced_motion:
+    respects_prefers_reduced_motion: true
+    no_required_motion_for_workflow_completion: true
+
+validation_matrix:
+  pages:
+    - id: patient-book-appointment
+      owner_file: vendor-managed/patient-scheduling-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+    - id: patient-request-appointment
+      owner_file: vendor-managed/patient-scheduling-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+    - id: patient-reschedule
+      owner_file: vendor-managed/patient-scheduling-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+    - id: patient-reminder-link
+      owner_file: vendor-managed/patient-scheduling-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+    - id: staff-daily-schedule
+      owner_file: vendor-managed/staff-admin-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+    - id: admin-appointment-types
+      owner_file: vendor-managed/staff-admin-shell
+      required_result: pass_wcag_2_1_aa_before_launch
+  automated_checks:
+    required: true
+    accepted_tools:
+      - vendor_supported_accessibility_scanner
+      - axe
+      - lighthouse_accessibility
+    pass_threshold: no_critical_or_serious_violations
+  manual_checks:
+    keyboard_only_walkthrough: required
+    screen_reader_smoke_test: required
+    mobile_viewport_review: required
+    desktop_viewport_review: required
+    light_dark_or_high_contrast_review: required
+  evidence_record:
+    location: vendor_accessibility_report_or_clinic_validation_repository_tbd
+    required_fields:
+      - page_id
+      - validation_date
+      - tester_or_tool
+      - result
+      - defects
+      - remediation_status
+      - approver
+  launch_gate:
+    status: blocked_until_all_required_results_pass
+    unresolved_wcag_aa_defect_blocks_pilot: true
+
+acceptance_mapping:
+  AC-010:
+    persona_navigation_defined_in:
+      - vendor-managed/patient-scheduling-shell
+      - vendor-managed/staff-admin-shell
+  AC-011:
+    keyboard_navigation_and_focus_defined: true
+  AC-012:
+    wcag_2_1_aa_validation_required_before_launch: true
