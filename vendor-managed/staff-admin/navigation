@@ -1,0 +1,80 @@
+staff_admin_navigation:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-001
+    - REQ-004
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_staff_admin_console
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+
+landmark:
+  element: nav
+  accessible_label: Staff and administration navigation
+
+persona_navigation:
+  clinic_administrator:
+    role_required: ROLE-CLINIC-ADMIN
+    entries:
+      - id: nav-appointment-types
+        label: Appointment types
+        route: Administrator persona / Appointment types
+        vendor_screen: admin.appointment_type_configuration
+        destination_file: vendor-managed/staff-admin/appointment-types
+        destination_heading: Appointment types
+        order: 1
+        icon: settings_vendor_equivalent
+        active_state:
+          text_label_visible: true
+          non_color_indicator: left_border_or_vendor_equivalent
+          aria_current: page
+        allowed_actions:
+          - view_appointment_type_configuration
+          - enable_or_disable_direct_bookable_status
+          - configure_staff_confirmation_requirement
+          - save_appointment_type_configuration_changes
+          - review_configuration_change_audit_events
+  appointment_type_configuration_manager:
+    role_required: ROLE-APPT-TYPE-CONFIG
+    entries:
+      - id: nav-appointment-types
+        label: Appointment types
+        route: Administrator persona / Appointment types
+        vendor_screen: admin.appointment_type_configuration
+        destination_file: vendor-managed/staff-admin/appointment-types
+        destination_heading: Appointment types
+        order: 1
+        icon: settings_vendor_equivalent
+        active_state:
+          text_label_visible: true
+          non_color_indicator: left_border_or_vendor_equivalent
+          aria_current: page
+        allowed_actions:
+          - view_appointment_type_configuration
+          - enable_or_disable_direct_bookable_status
+          - configure_staff_confirmation_requirement
+          - save_appointment_type_configuration_changes
+
+responsive_behavior:
+  desktop:
+    pattern: left_navigation
+    appointment_types_position: first_admin_configuration_entry
+  mobile:
+    pattern: vendor_supported_collapsible_or_bottom_navigation
+    appointment_types_reachable_by_keyboard: true
+
+accessibility:
+  keyboard_reachable: true
+  visible_focus_state_required: true
+  minimum_target_size_px: 44
+  screen_reader_output:
+    landmark_announced_as: Staff and administration navigation
+    appointment_types_entry_announced_as: Appointment types
+
+acceptance_mapping:
+  AC-003:
+    met_by:
+      - Authorized administrator persona can reach the Appointment types screen from navigation.
+  AC-004:
+    met_by:
+      - Navigation opens the screen that displays booking behavior tags for appointment type settings.
