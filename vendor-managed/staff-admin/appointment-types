@@ -1,0 +1,230 @@
+appointment_types_admin_screen:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-001
+    - REQ-004
+  route: Administrator persona / Appointment types
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_staff_admin_console
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+
+authorization:
+  allowed_personas:
+    - clinic_administrator
+    - appointment_type_configuration_manager
+  required_roles:
+    - ROLE-CLINIC-ADMIN
+    - ROLE-APPT-TYPE-CONFIG
+  authentication:
+    named_staff_account_required: true
+    mfa_required: true
+    shared_account_allowed: false
+  denied_state:
+    show_navigation_entry: false
+    show_screen_content: false
+    message: Appointment type settings are available only to authorized clinic administrators and appointment type configuration managers.
+
+layout:
+  shell:
+    sticky_top_bar: enabled
+    persona_switcher: enabled_for_authorized_staff_review_and_testing
+    left_navigation_item: nav-appointment-types
+    mobile_navigation: vendor_supported_collapsible_equivalent
+    main_landmark_id: main_staff_admin_content
+  heading:
+    h1: Appointment types
+    description: Configure how each active clinic-approved appointment type behaves in patient scheduling.
+  content_regions:
+    - id: publish-state-panel
+      component: status_panel
+      accessible_name: Appointment type settings publication status
+      default_state:
+        tone: neutral
+        title: Current patient booking rules
+        body: Active patient sessions use the last saved vendor-managed appointment type settings.
+    - id: appointment-type-settings-card
+      component: card
+      heading: Appointment type booking settings
+      contains:
+        - appointment_type_table
+        - save_changes_action
+    - id: saved-confirmation-panel
+      component: status_panel
+      accessible_name: Appointment type settings save confirmation
+      visibility: hidden_until_successful_save
+      success_state:
+        tone: success
+        title: Appointment type settings saved
+        body: Future patient sessions use the updated settings after the vendor-managed configuration publishes.
+
+data_source:
+  appointment_types:
+    source: vendor_managed_appointment_type_rules.active_configured_appointment_types
+    fallback_until_clinic_approval: appointment_type_rules.prototype_seed_examples
+    future_approved_list_supported_without_code_change: true
+    required_fields:
+      - appointment_type_id
+      - display_name
+      - patient_facing_booking_setting
+      - active
+    excluded_fields:
+      - patient_name
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - raw_ehr_payload
+  booking_setting_options:
+    source: appointment_type_rules.booking_setting_model.allowed_values
+    values:
+      - Direct-bookable
+      - Staff-confirmed
+
+appointment_type_table:
+  caption: Patient booking behavior by appointment type
+  responsive_behavior:
+    desktop: table_with_column_headers
+    mobile: cards_preserving_header_labels_for_each_field
+  columns:
+    - id: appointment-type
+      header: Appointment type
+      cell_source: display_name
+    - id: booking-setting
+      header: Booking setting
+      cell_component: select
+      select:
+        value_source: patient_facing_booking_setting
+        allowed_values:
+          - Direct-bookable
+          - Staff-confirmed
+        accessible_label_template: Booking setting for {display_name}
+        described_by_template: Patient behavior for {display_name}
+        keyboard_operation:
+          reachable_by_tab: true
+          native_arrow_key_selection: true
+          visible_focus_indicator: true
+          minimum_target_size_px: 44
+        validation:
+          required: true
+          reject_values_outside_allowed_values: true
+          inline_error: Choose Direct-bookable or Staff-confirmed for this appointment type.
+    - id: patient-behavior
+      header: Patient behavior
+      cell_component: status_tag
+      behavior_mapping:
+        Direct-bookable:
+          tag:
+            tone: success
+            label: Available slots shown
+            non_color_indicator: check_icon_vendor_equivalent
+          patient_behavior_text: Patient can choose an eligible available slot, then submit the booking request into the EHR booking workflow.
+        Staff-confirmed:
+          tag:
+            tone: warning
+            label: Pending staff request
+            non_color_indicator: alert_icon_vendor_equivalent
+          patient_behavior_text: Patient submits a request that stays pending until authorized staff confirm or decline it.
+
+prototype_seed_rows_for_review_only:
+  source_note: Example rows are for stakeholder review until the clinic-approved appointment type list is supplied by configuration.
+  rows:
+    - appointment_type_id: wellness_visit
+      display_name: Wellness visit
+      booking_setting: Direct-bookable
+      expected_tag_label: Available slots shown
+      expected_tag_tone: success
+    - appointment_type_id: follow_up_visit
+      display_name: Follow-up visit
+      booking_setting: Direct-bookable
+      expected_tag_label: Available slots shown
+      expected_tag_tone: success
+    - appointment_type_id: new_concern_visit
+      display_name: New concern visit
+      booking_setting: Staff-confirmed
+      expected_tag_label: Pending staff request
+      expected_tag_tone: warning
+    - appointment_type_id: procedure_consultation
+      display_name: Procedure consultation
+      booking_setting: Staff-confirmed
+      expected_tag_label: Pending staff request
+      expected_tag_tone: warning
+
+save_changes_workflow:
+  trigger:
+    component: primary_button
+    label: Save changes
+    enabled_when:
+      - authorized_user_has_required_role
+      - at_least_one_booking_setting_changed
+      - all_rows_have_valid_booking_setting
+  confirmation:
+    component: modal_confirmation
+    title: Save appointment type changes?
+    body: Future patient sessions will use the updated appointment type booking settings after publication.
+    primary_action_label: Save changes
+    cancel_action_label: Cancel
+    focus_trap_required: true
+    escape_or_cancel_closes: true
+    return_focus_to_invoker_on_close: true
+  persistence:
+    target: vendor_managed_saas_configuration
+    browser_local_storage_required: false
+    browser_session_storage_required: false
+    audit_event: appointment_type_configuration_changed
+    audit_fields_minimized:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - configuration_area
+      - appointment_type_id
+      - appointment_type_display_name
+      - changed_setting
+      - previous_value_redacted
+      - new_value_redacted
+      - vendor_correlation_id
+  success_feedback:
+    show_panel_id: saved-confirmation-panel
+    status_role: status
+    message: Appointment type settings saved. Future patient sessions use the updated settings after the vendor-managed configuration publishes.
+    reset_dirty_state: true
+
+accessibility:
+  standard: WCAG_2_1_AA
+  labels:
+    every_select_has_accessible_label: true
+    label_template: Booking setting for {display_name}
+  keyboard:
+    full_screen_keyboard_operable: true
+    tab_order:
+      - skip_link
+      - top_bar_persona_switcher_if_available
+      - staff_admin_navigation
+      - page_heading
+      - publish_state_panel
+      - appointment_type_select_controls
+      - save_changes_button
+      - confirmation_modal_controls_when_open
+      - saved_confirmation_panel
+    focus_visible_required: true
+  status_tags:
+    visually_distinct_success_and_warning_tones: true
+    color_only_status_prohibited: true
+    direct_bookable_success_label: Available slots shown
+    staff_confirmed_warning_label: Pending staff request
+  announcements:
+    save_success_announced_with_status_role: true
+    validation_errors_announced: true
+
+acceptance_mapping:
+  AC-003:
+    met_by:
+      - booking_setting select controls permit authorized users to change Direct-bookable or Staff-confirmed values.
+      - Save changes action persists valid changes to vendor-managed SaaS configuration.
+      - Successful save reveals a status panel confirming future patient sessions use updated settings.
+  AC-004:
+    met_by:
+      - Direct-bookable rows show a success tag labeled Available slots shown.
+      - Staff-confirmed rows show a warning tag labeled Pending staff request.
+      - Tag status is communicated with text and an icon-equivalent non-color indicator.
