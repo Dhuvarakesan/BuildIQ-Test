@@ -3,27 +3,56 @@ appointment_types_admin_screen:
   environment: pilot
   related_requirements:
     - REQ-001
+    - REQ-003
     - REQ-004
+    - REQ-005
   route: Administrator persona / Appointment types
   vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_staff_admin_console
   status: configured_pending_vendor_application
   last_updated: "2026-11-23"
 
 authorization:
+  rbac_policy: vendor-managed/rbac
   allowed_personas:
     - clinic_administrator
     - appointment_type_configuration_manager
+  denied_personas:
+    - patient
+    - scheduling_staff_without_appointment_type_configuration_role
+    - audit_reviewer_without_configuration_role
   required_roles:
     - ROLE-CLINIC-ADMIN
     - ROLE-APPT-TYPE-CONFIG
   authentication:
     named_staff_account_required: true
     mfa_required: true
+    mfa_required_before_screen_access: true
+    mfa_required_before_save: true
     shared_account_allowed: false
   denied_state:
     show_navigation_entry: false
     show_screen_content: false
-    message: Appointment type settings are available only to authorized clinic administrators and appointment type configuration managers.
+    save_changes_visible: false
+    save_changes_enabled: false
+    message: Appointment type settings are available only to MFA-verified authorized clinic administrators and appointment type configuration managers.
+  route_guard:
+    evaluate_before_screen_render: true
+    patient_account_access: denied
+    staff_without_required_role_access: denied
+    mfa_incomplete_access: denied
+    unauthorized_destination: vendor_supported_access_denied_or_previous_safe_screen
+  persistence_guard:
+    evaluate_before_save: true
+    require_named_staff_account: true
+    require_mfa_verified_session: true
+    require_any_role:
+      - ROLE-CLINIC-ADMIN
+      - ROLE-APPT-TYPE-CONFIG
+    reject_patient_account_tokens: true
+    reject_staff_without_configuration_permission: true
+    reject_direct_request_bypass: true
+    failed_authorization_persists_changes: false
+    failed_authorization_audit_event: appointment_type_configuration_change_denied
 
 layout:
   shell:
@@ -154,8 +183,19 @@ save_changes_workflow:
   trigger:
     component: primary_button
     label: Save changes
+    unauthorized_state:
+      patient_account:
+        visible: false
+        enabled: false
+      staff_without_configuration_permission:
+        visible: vendor_capability_hide_or_disable
+        enabled: false
+      mfa_incomplete_staff_session:
+        visible: vendor_capability_hide_or_disable
+        enabled: false
     enabled_when:
       - authorized_user_has_required_role
+      - authorized_user_has_mfa_verified_session
       - at_least_one_booking_setting_changed
       - all_rows_have_valid_booking_setting
   confirmation:
@@ -169,9 +209,15 @@ save_changes_workflow:
     return_focus_to_invoker_on_close: true
   persistence:
     target: vendor_managed_saas_configuration
+    precondition_policy: vendor-managed/rbac
+    deny_when_user_lacks_ROLE_CLINIC_ADMIN_or_ROLE_APPT_TYPE_CONFIG: true
+    deny_when_mfa_not_verified: true
+    deny_patient_account_tokens: true
+    direct_access_attempts_can_persist_changes: false
     browser_local_storage_required: false
     browser_session_storage_required: false
     audit_event: appointment_type_configuration_changed
+    denied_audit_event: appointment_type_configuration_change_denied
     audit_fields_minimized:
       - occurred_at
       - actor_user_id
@@ -218,6 +264,18 @@ accessibility:
     validation_errors_announced: true
 
 acceptance_mapping:
+  AC-005:
+    met_by:
+      - authorization.denied_personas includes patient
+      - authorization.route_guard.patient_account_access is denied
+      - authorization.denied_state.show_screen_content is false
+    evidence: Patient accounts cannot render the appointment type configuration screen or reach it through the appointment type admin navigation entry.
+  AC-006:
+    met_by:
+      - authorization.persistence_guard.reject_staff_without_configuration_permission
+      - save_changes_workflow.trigger.unauthorized_state.staff_without_configuration_permission.enabled is false
+      - save_changes_workflow.persistence.direct_access_attempts_can_persist_changes is false
+    evidence: Staff sessions without ROLE-CLINIC-ADMIN or ROLE-APPT-TYPE-CONFIG cannot save appointment type settings from the UI or by direct write attempts.
   AC-003:
     met_by:
       - booking_setting select controls permit authorized users to change Direct-bookable or Staff-confirmed values.
