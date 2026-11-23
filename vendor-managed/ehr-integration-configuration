@@ -1,0 +1,182 @@
+ehr_integration:
+  project: Clinic-booking-app-123456
+  environment: pilot_non_production_validation
+  related_requirement: REQ-002
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  scheduling_saas: hipaa_ready_vendor_hosted_saas_tbd
+  status: configured_pending_vendor_and_ehr_validation
+  last_updated: "2026-11-23"
+
+security:
+  authentication:
+    method_preference:
+      - vendor_supported_oauth2_client_credentials_or_private_key_jwt
+      - vendor_supported_mtls
+      - vendor_supported_api_key_only_if_ehr_requires
+    credential_storage: vendor_managed_secure_secret_storage_only
+    clinic_user_visibility: prohibited
+    log_exposure: prohibited
+    secret_references:
+      ehr_client_id:
+        storage: vendor_managed_secret_store
+        reference_name: ehr_integration_client_id
+        value_material: not_stored_in_repository
+      ehr_client_secret_or_private_key:
+        storage: vendor_managed_secret_store
+        reference_name: ehr_integration_client_secret_or_private_key
+        value_material: not_stored_in_repository
+      ehr_token_endpoint_or_base_url:
+        storage: vendor_managed_secret_store_or_protected_vendor_config
+        reference_name: ehr_integration_endpoint
+        value_material: not_stored_in_repository
+    rotation:
+      owner: saas_vendor_with_clinic_technical_owner_approval
+      cadence: vendor_policy_or_clinic_security_requirement
+      emergency_revocation_supported: required
+  data_minimization:
+    bulk_scheduling_history_migration: disabled
+    bulk_patient_record_migration: disabled
+    operational_copy_scope:
+      - active_availability_queries
+      - active_booking_or_rescheduling_workflows
+      - current_staff_schedule_view
+      - pending_appointment_requests
+      - integration_failure_reporting
+    logs:
+      phi_policy: minimize_phi
+      allowed_identifiers:
+        - vendor_correlation_id
+        - ehr_non_phi_reference_when_supported
+        - tenant_id
+        - workflow_type
+      prohibited_values:
+        - patient_name
+        - patient_phone
+        - patient_email
+        - date_of_birth
+        - full_appointment_reason
+        - raw_ehr_payload
+
+validation_path:
+  type: non_production_or_vendor_supported_sandbox
+  required_before_production_phi: true
+  mode_preference:
+    - ehr_sandbox_real_time_api
+    - ehr_vendor_test_patient_or_test_provider_scope
+    - scheduling_saas_vendor_non_production_tenant
+  allowed_operations:
+    availability_query:
+      enabled: true
+      source: ehr_real_time_availability_api_preferred
+      persists_history: false
+    schedule_feed_query:
+      enabled: true
+      source: ehr_real_time_schedule_feed_api_preferred
+      persists_history: false
+    booking_command:
+      enabled: true
+      scope: test_patient_and_test_provider_only_until_production_approval
+    reschedule_command:
+      enabled: true
+      scope: test_patient_and_test_provider_only_until_production_approval
+  prohibited_operations:
+    - bulk_import_scheduling_history
+    - bulk_import_patient_records
+    - raw_ehr_payload_export_to_saas_users
+  success_evidence:
+    - availability_query_returns_current_open_slots_for_configured_provider_and_appointment_type
+    - schedule_feed_returns_current_day_appointments_and_pending_requests_without_historical_migration
+    - booking_and_rescheduling_commands_return_ehr_appointment_identifier_and_status
+    - operational_report_shows_last_successful_sync_time_or_failure_state
+
+api_preferences:
+  availability: real_time_ehr_availability_api
+  booking: real_time_ehr_booking_api
+  rescheduling: real_time_ehr_rescheduling_api
+  schedule_feed: real_time_ehr_schedule_feed_api
+  fallback_when_real_time_api_unavailable: vendor_supported_incremental_feed_with_freshness_indicator
+  disallowed_fallbacks:
+    - one_time_bulk_history_migration
+    - standing_bulk_patient_record_copy
+
+field_mappings:
+  appointment:
+    ehr_appointment_id: appointment.external_id
+    start_time: appointment.start_at
+    end_time: appointment.end_at
+    provider_id: appointment.provider.external_id
+    location_id: appointment.location.external_id
+    appointment_type_id: appointment.type.external_id
+    status: appointment.status
+    scheduling_workflow: appointment.workflow_kind
+  availability:
+    slot_id: availability.external_slot_id
+    provider_id: availability.provider.external_id
+    appointment_type_id: availability.appointment_type.external_id
+    location_id: availability.location.external_id
+    start_time: availability.start_at
+    end_time: availability.end_at
+    booking_eligibility: availability.direct_bookable
+  provider:
+    ehr_provider_id: provider.external_id
+    display_name: provider.display_name
+    specialty: provider.specialty
+    active: provider.active
+  appointment_type:
+    ehr_appointment_type_id: appointment_type.external_id
+    display_name: appointment_type.display_name
+    duration_minutes: appointment_type.duration_minutes
+    direct_bookable: appointment_type.direct_bookable
+    staff_confirmation_required: appointment_type.staff_confirmation_required
+  patient_identity_contact:
+    ehr_patient_id: patient.external_id
+    first_name: patient.first_name
+    last_name: patient.last_name
+    date_of_birth: patient.date_of_birth
+    phone: patient.phone
+    email: patient.email
+    preferred_contact_method: patient.preferred_contact_method
+    contact_consent: patient.contact_consent
+  status:
+    ehr_booked: confirmed
+    ehr_confirmed: confirmed
+    ehr_pending: pending_staff_confirmation
+    ehr_cancelled: cancelled
+    ehr_rescheduled: rescheduled
+    ehr_no_show: no_show
+    ehr_error_or_unknown: sync_exception
+
+operational_reporting:
+  expose_to_staff_admin_shell:
+    summary_status: true
+    last_successful_availability_query_at: true
+    last_successful_schedule_feed_at: true
+    last_failed_operation_at: true
+    failure_count_by_operation: true
+    current_freshness_state: true
+  failure_events:
+    emit_for:
+      - authentication_failure
+      - availability_query_failure
+      - booking_command_failure
+      - reschedule_command_failure
+      - schedule_feed_failure
+      - stale_schedule_feed
+    redaction: phi_minimized
+    correlation_id_required: true
+    clinic_user_message: generic_failure_with_support_reference
+  freshness_thresholds:
+    availability_minutes: 5
+    schedule_feed_minutes: 15
+    alert_when_exceeded: true
+
+approval_gate:
+  production_enablement_status: blocked
+  blockers:
+    - signed_baa_pending
+    - vendor_security_evidence_pending
+    - ehr_validation_pending
+  required_approvers:
+    - clinic_compliance_owner
+    - clinic_technical_owner
+    - security_reviewer

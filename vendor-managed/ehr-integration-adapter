@@ -1,0 +1,190 @@
+ehr_integration_adapter:
+  component: COMP-003
+  responsibility: Normalize vendor-supported EHR scheduling APIs for active availability, booking, rescheduling, and schedule-feed workflows.
+  source_of_truth: existing_ehr_practice_management_scheduling_system
+  configuration_source: vendor-managed/ehr-integration-configuration
+  status: baseline_configured_pending_ehr_capability_confirmation
+
+connection_policy:
+  credential_source: vendor_managed_secure_secret_storage_only
+  credentials_in_application_logs: prohibited
+  raw_payload_logging: prohibited
+  phi_redaction_required: true
+  correlation_id_strategy: vendor_generated_non_phi_correlation_id
+  timeout_and_retry:
+    availability_query:
+      timeout_seconds: 10
+      retry_attempts: 1
+      retry_only_idempotent: true
+    schedule_feed_query:
+      timeout_seconds: 20
+      retry_attempts: 1
+      retry_only_idempotent: true
+    booking_command:
+      timeout_seconds: 20
+      retry_attempts: 0
+      retry_only_with_vendor_idempotency_key: true
+    reschedule_command:
+      timeout_seconds: 20
+      retry_attempts: 0
+      retry_only_with_vendor_idempotency_key: true
+
+supported_workflows:
+  availability_query:
+    direction: saas_to_ehr
+    api_preference: real_time
+    writes_to_ehr: false
+    stores_operational_copy: transient_active_workflow_only
+    bulk_history_required: false
+    normalized_response:
+      - external_slot_id
+      - provider_external_id
+      - appointment_type_external_id
+      - location_external_id
+      - start_at
+      - end_at
+      - direct_bookable
+  schedule_feed_query:
+    direction: ehr_to_saas
+    api_preference: real_time_or_incremental_feed
+    writes_to_ehr: false
+    stores_operational_copy: current_schedule_view_only
+    bulk_history_required: false
+    normalized_response:
+      - appointment_external_id
+      - provider_external_id
+      - patient_external_id
+      - appointment_type_external_id
+      - start_at
+      - end_at
+      - status
+      - workflow_kind
+  booking_command:
+    direction: saas_to_ehr
+    api_preference: real_time
+    writes_to_ehr: true
+    requires_idempotency_key: true
+    normalized_request:
+      - selected_slot_external_id
+      - provider_external_id
+      - appointment_type_external_id
+      - location_external_id
+      - patient_identity_contact
+    normalized_response:
+      - appointment_external_id
+      - status
+      - confirmation_timestamp
+  reschedule_command:
+    direction: saas_to_ehr
+    api_preference: real_time
+    writes_to_ehr: true
+    requires_otp_verified_context: true
+    requires_idempotency_key: true
+    normalized_request:
+      - existing_appointment_external_id
+      - selected_slot_external_id
+      - patient_external_id
+      - otp_verification_reference
+    normalized_response:
+      - appointment_external_id
+      - status
+      - rescheduled_timestamp
+
+mapping_contract:
+  appointment:
+    required:
+      - appointment.external_id
+      - appointment.start_at
+      - appointment.end_at
+      - appointment.provider.external_id
+      - appointment.location.external_id
+      - appointment.type.external_id
+      - appointment.status
+    optional_minimized:
+      - appointment.workflow_kind
+  availability:
+    required:
+      - availability.external_slot_id
+      - availability.provider.external_id
+      - availability.appointment_type.external_id
+      - availability.location.external_id
+      - availability.start_at
+      - availability.end_at
+      - availability.direct_bookable
+  provider:
+    required:
+      - provider.external_id
+      - provider.display_name
+      - provider.active
+    optional_minimized:
+      - provider.specialty
+  appointment_type:
+    required:
+      - appointment_type.external_id
+      - appointment_type.display_name
+      - appointment_type.duration_minutes
+      - appointment_type.direct_bookable
+      - appointment_type.staff_confirmation_required
+  patient_identity_contact:
+    required_for_booking:
+      - patient.first_name
+      - patient.last_name
+      - patient.date_of_birth
+      - patient.phone_or_email
+    required_for_rescheduling:
+      - patient.external_id
+      - otp_verification_reference
+    storage_scope: active_workflow_operational_copy_only
+  status_translation:
+    booked: confirmed
+    confirmed: confirmed
+    pending: pending_staff_confirmation
+    cancelled: cancelled
+    rescheduled: rescheduled
+    no_show: no_show
+    unknown: sync_exception
+
+non_production_validation:
+  enabled: true
+  patient_scope: ehr_test_patients_or_vendor_test_records_only
+  provider_scope: pilot_test_provider_or_sandbox_provider_only
+  can_query_availability_without_bulk_history: true
+  can_query_schedule_without_bulk_history: true
+  validation_outputs:
+    - availability_query_result_with_redacted_patient_context
+    - schedule_feed_freshness_timestamp
+    - booking_or_reschedule_test_result_with_non_phi_correlation_id
+    - integration_failure_report_entry_when_forced_error_is_supported
+
+failure_reporting:
+  report_destination: vendor-managed/audit-reporting
+  staff_admin_visibility: integration_status_panel
+  include_freshness_indicator: true
+  include_failure_indicator: true
+  include_raw_ehr_payload: false
+  include_credentials: false
+  event_fields:
+    - occurred_at
+    - tenant_id
+    - operation
+    - severity
+    - vendor_correlation_id
+    - ehr_reference_if_non_phi
+    - freshness_age_minutes
+    - remediation_hint
+  failure_classification:
+    authentication_failure: High
+    authorization_failure: High
+    availability_stale: Medium
+    schedule_feed_stale: Medium
+    booking_write_failed: High
+    reschedule_write_failed: High
+    mapping_validation_failed: Medium
+
+guardrails:
+  ehr_remains_system_of_record: true
+  no_bulk_scheduling_history_migration: true
+  no_bulk_patient_record_migration: true
+  no_credentials_in_repository: true
+  no_credentials_in_logs: true
+  no_raw_phi_payloads_in_operational_reports: true
