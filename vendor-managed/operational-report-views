@@ -1,0 +1,160 @@
+operational_report_views:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-004
+  source_configuration:
+    audit_reporting: vendor-managed/audit-reporting
+    ehr_integration: vendor-managed/ehr-integration-configuration
+    audit_exports: vendor-managed/audit-export-configuration
+  last_updated: "2026-11-23"
+
+audience:
+  scheduling_staff:
+    role: ROLE-SCHEDULING-STAFF
+    purpose: Daily follow-up for pending requests and failed reminders.
+  operations_owner:
+    role: ROLE-CLINIC-ADMIN
+    purpose: Monitor sync health, reminder delivery health, and vendor support references.
+  audit_reviewer:
+    role: ROLE-AUDIT-REVIEWER
+    purpose: Review access and configuration evidence without operational write access.
+
+views:
+  integration_health_dashboard:
+    enabled: true
+    visible_to:
+      - ROLE-CLINIC-ADMIN
+      - ROLE-AUDIT-REVIEWER
+    refresh: vendor_supported_near_real_time_or_next_available
+    cards:
+      - last_successful_availability_query_at
+      - last_successful_schedule_feed_at
+      - current_freshness_state
+      - failure_count_by_operation
+      - last_failed_operation_at
+    failure_events:
+      - ehr_authentication_failure
+      - ehr_authorization_failure
+      - availability_query_failure
+      - booking_command_failure
+      - reschedule_command_failure
+      - schedule_feed_failure
+      - stale_schedule_feed
+      - mapping_validation_failed
+    required_columns:
+      - occurred_at
+      - operation
+      - severity
+      - outcome
+      - vendor_correlation_id
+      - ehr_correlation_id_if_available
+      - freshness_age_minutes
+      - remediation_hint
+    phi_policy: no_patient_identifiers_raw_payloads_or_credentials
+  reminder_failure_follow_up_queue:
+    enabled: true
+    visible_to:
+      - ROLE-SCHEDULING-STAFF
+      - ROLE-CLINIC-ADMIN
+    purpose: Let scheduling staff identify reminder delivery failures requiring approved manual follow-up.
+    failure_events:
+      - sms_delivery_failed
+      - email_delivery_failed
+      - reminder_suppressed_due_to_missing_consent
+      - reminder_suppressed_due_to_invalid_contact
+      - reminder_vendor_failure
+    required_columns:
+      - occurred_at
+      - reminder_channel
+      - failure_category
+      - workflow_reference
+      - vendor_correlation_id
+      - delivery_provider_reference_if_non_phi
+      - follow_up_status
+    prohibited_columns:
+      - reminder_message_body
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - raw_delivery_payload
+    phi_policy: hide_privacy_sensitive_reminder_content_and_contact_details
+  pending_request_operations:
+    enabled: true
+    visible_to:
+      - ROLE-SCHEDULING-STAFF
+      - ROLE-APPT-TYPE-CONFIG
+      - ROLE-CLINIC-ADMIN
+    purpose: Track staff-confirmed requests that need action or were recently actioned.
+    required_columns:
+      - created_at
+      - pending_request_reference
+      - appointment_type_reference
+      - status
+      - assigned_queue
+      - last_action_at
+      - last_action_actor_user_id
+      - vendor_correlation_id
+    audit_dependency: pending_request_actions
+    phi_policy: display_minimum_operational_context_needed_for_active_workflow
+  audit_access_and_configuration_review:
+    enabled: true
+    visible_to:
+      - ROLE-CLINIC-ADMIN
+      - ROLE-AUDIT-REVIEWER
+    purpose: Review named-user access to scheduling records and configuration changes.
+    required_columns:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - action
+      - target_record_type
+      - configuration_area
+      - changed_setting
+      - vendor_correlation_id
+    filters:
+      - date_range
+      - actor_user_id
+      - actor_role
+      - action
+      - configuration_area
+      - clinic_location_id
+    phi_policy: no_patient_demographics_contact_details_reasons_or_reminder_bodies
+
+operational_thresholds:
+  ehr_sync:
+    availability_freshness_minutes: 5
+    schedule_feed_freshness_minutes: 15
+    high_severity_events:
+      - ehr_authentication_failure
+      - ehr_authorization_failure
+      - booking_command_failure
+      - reschedule_command_failure
+    alert_destination: clinic_operations_owner_vendor_supported_channel
+  reminder_delivery:
+    failure_queue_review_frequency: each_business_day
+    alert_when_failure_rate_exceeds_vendor_supported_threshold: true
+    alert_destination: scheduling_staff_queue_and_operations_owner
+
+support_investigation:
+  primary_lookup_identifier: vendor_correlation_id
+  secondary_lookup_identifiers:
+    - ehr_correlation_id_if_available
+    - ehr_reference_if_non_phi
+    - delivery_provider_reference_if_non_phi
+  escalation_packet_must_exclude:
+    - patient_name
+    - patient_phone
+    - patient_email
+    - date_of_birth
+    - full_appointment_reason
+    - reminder_message_body
+    - raw_ehr_payload
+    - credentials
+
+limitations:
+  vendor_event_support: Operational rows appear only for event categories the vendor can emit or expose in reports.
+  delivery_provider_detail: SMS and email delivery provider references are included only when non-PHI and vendor-supported.
+  ehr_failure_detail: EHR failure reason must be summarized into failure category and remediation hint; raw EHR payloads are prohibited.
+  exports: Operational report exports inherit the restrictions in vendor-managed/audit-export-configuration.
