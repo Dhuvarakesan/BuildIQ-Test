@@ -1,0 +1,129 @@
+staff_admin_accounts:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  location_scope: pilot_clinic_location_tbd
+  account_model: individual_named_saas_accounts
+  shared_accounts:
+    allowed: false
+    pilot_workflow_use: prohibited
+    enforcement_note: "No shared, generic, role-based, temporary, or vendor-demo staff account may be used for pilot workflows."
+  mfa:
+    required_for_all_staff_and_admins: true
+    access_before_mfa_enrollment: denied
+    recovery_owner: clinic_administrator
+  auditability:
+    required: true
+    required_events:
+      - login_success
+      - login_failure
+      - mfa_challenge
+      - mfa_enrollment_or_reset
+      - daily_schedule_access
+      - pending_request_action
+      - failed_reminder_follow_up_access
+      - appointment_type_configuration_change
+      - role_assignment_change
+      - account_created_disabled_or_reactivated
+      - audit_report_access_or_export
+    export_capability: vendor_capability_tbd
+    phi_minimization: "Audit records and exports must avoid unnecessary scheduling PHI and use vendor-supported minimum fields."
+  default_role_rules:
+    scheduling_staff:
+      role_id: ROLE-SCHEDULING-STAFF
+      can_view_daily_schedule: true
+      can_view_failed_reminder_follow_up: true
+      can_modify_appointment_type_configuration: false
+      configuration_access_requires_explicit_role: ROLE-APPT-TYPE-CONFIG
+    clinic_administrator:
+      role_id: ROLE-CLINIC-ADMIN
+      can_view_daily_schedule: true
+      can_view_failed_reminder_follow_up: true
+      can_modify_appointment_type_configuration: true
+      mfa_required: true
+      auditable_activity_required: true
+
+accounts:
+  - account_id: pilot-scheduler-01
+    named_user: "TBD Scheduling Staff 01"
+    clinic_email: "TBD"
+    status: pending_named_user_assignment
+    shared_account: false
+    role_ids:
+      - ROLE-SCHEDULING-STAFF
+    mfa_status: required_before_activation
+    pilot_access:
+      daily_schedule: allowed_after_activation
+      failed_reminder_follow_up: allowed_after_activation
+      appointment_type_configuration: denied
+      audit_reports: denied
+    approval:
+      approver: TBD
+      request_reference: TBD
+      approved_on: TBD
+    audit:
+      activity_logging_required: true
+      last_access_review: TBD
+      notes: "Scheduling staff account can access the daily schedule but cannot modify appointment type configuration unless explicitly granted ROLE-APPT-TYPE-CONFIG."
+
+  - account_id: pilot-admin-01
+    named_user: "TBD Clinic Administrator 01"
+    clinic_email: "TBD"
+    status: pending_named_user_assignment
+    shared_account: false
+    role_ids:
+      - ROLE-CLINIC-ADMIN
+    mfa_status: required_before_activation
+    pilot_access:
+      daily_schedule: allowed_after_activation
+      failed_reminder_follow_up: allowed_after_activation
+      appointment_type_configuration: allowed_after_activation
+      audit_reports: allowed_after_activation
+    approval:
+      approver: TBD
+      request_reference: TBD
+      approved_on: TBD
+    audit:
+      activity_logging_required: true
+      last_access_review: TBD
+      notes: "Administrator account can access appointment type configuration only after MFA enrollment and must retain auditable activity."
+
+  - account_id: pilot-config-manager-01
+    named_user: "TBD Appointment Type Configuration Manager 01"
+    clinic_email: "TBD"
+    status: optional_pending_named_user_assignment
+    shared_account: false
+    role_ids:
+      - ROLE-SCHEDULING-STAFF
+      - ROLE-APPT-TYPE-CONFIG
+    mfa_status: required_before_activation
+    pilot_access:
+      daily_schedule: allowed_after_activation
+      failed_reminder_follow_up: allowed_after_activation
+      appointment_type_configuration: allowed_after_activation
+      audit_reports: denied
+    approval:
+      approver: TBD
+      request_reference: TBD
+      approved_on: TBD
+    audit:
+      activity_logging_required: true
+      last_access_review: TBD
+      notes: "Optional named account for explicitly authorized staff who need appointment type configuration access."
+
+access_review:
+  required_before_pilot_launch: true
+  recurring_frequency: monthly_during_pilot
+  reviewer: clinic_compliance_owner_or_delegate
+  review_checks:
+    - all_active_accounts_are_named_individuals
+    - no_shared_accounts_exist_or_are_used_for_pilot
+    - mfa_enabled_for_all_active_staff_and_admin_accounts
+    - rbac_matches_staff_role_matrix
+    - scheduling_staff_without_explicit_configuration_role_cannot_modify_appointment_types
+    - administrator_configuration_activity_is_auditable
+    - disabled_or_departed_staff_have_no_active_access
+  last_review:
+    date: TBD
+    reviewer: TBD
+    outcome: pending
+
