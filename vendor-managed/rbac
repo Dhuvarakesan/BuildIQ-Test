@@ -1,0 +1,124 @@
+rbac:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-003
+    - REQ-005
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_access_control
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+
+purpose:
+  description: Enforce role-based access control for appointment type configuration changes in the vendor-hosted scheduling SaaS.
+  protected_configuration_area: appointment_type_settings
+  protected_route: Administrator persona / Appointment types
+  protected_artifact: vendor-managed/staff-admin/appointment-types
+  patient_access_allowed: false
+  direct_write_without_authorized_role_allowed: false
+
+session_requirements:
+  account_type:
+    staff_or_admin_named_saas_account_required: true
+    patient_account_allowed: false
+    shared_account_allowed: false
+  mfa:
+    required_for_configuration_route_access: true
+    required_for_configuration_save: true
+    access_before_mfa_completion: denied
+  clinic_scope:
+    limited_to: pilot_clinic_location_tbd
+
+roles:
+  ROLE-CLINIC-ADMIN:
+    appointment_type_configuration:
+      view_screen: allow
+      edit_settings: allow
+      save_changes: allow
+      review_audit_events: allow
+  ROLE-APPT-TYPE-CONFIG:
+    appointment_type_configuration:
+      view_screen: allow
+      edit_settings: allow
+      save_changes: allow
+      review_audit_events: deny_unless_separately_approved
+  ROLE-SCHEDULING-STAFF:
+    appointment_type_configuration:
+      view_screen: deny_unless_ROLE_APPT_TYPE_CONFIG_also_assigned
+      edit_settings: deny_unless_ROLE_APPT_TYPE_CONFIG_also_assigned
+      save_changes: deny_unless_ROLE_APPT_TYPE_CONFIG_also_assigned
+      review_audit_events: deny_unless_separately_approved
+  ROLE-AUDIT-REVIEWER:
+    appointment_type_configuration:
+      view_screen: deny
+      edit_settings: deny
+      save_changes: deny
+      review_audit_events: allow
+  PATIENT:
+    appointment_type_configuration:
+      view_screen: deny
+      edit_settings: deny
+      save_changes: deny
+      review_audit_events: deny
+
+enforcement_points:
+  navigation:
+    hide_appointment_types_entry_for_patient_accounts: true
+    hide_appointment_types_entry_for_staff_without_configuration_permission: true
+  route_guard:
+    evaluate_before_screen_render: true
+    deny_patient_accounts: true
+    deny_staff_without_ROLE_CLINIC_ADMIN_or_ROLE_APPT_TYPE_CONFIG: true
+    deny_when_mfa_not_completed: true
+    unauthorized_destination: vendor_supported_access_denied_or_previous_safe_screen
+  screen_controls:
+    hide_or_disable_save_changes_for_unauthorized_users: true
+    booking_setting_controls_read_only_or_hidden_for_unauthorized_users: true
+    denied_message: Appointment type settings are available only to MFA-verified authorized clinic administrators and appointment type configuration managers.
+  write_guard:
+    evaluate_before_persistence: true
+    require_named_staff_account: true
+    require_mfa_verified_session: true
+    require_any_role:
+      - ROLE-CLINIC-ADMIN
+      - ROLE-APPT-TYPE-CONFIG
+    reject_patient_account_tokens: true
+    reject_missing_or_unapproved_role: true
+    reject_browser_only_or_direct_request_bypass: true
+    reject_values_outside_booking_setting_model: true
+    failure_result:
+      persisted: false
+      audit_event: appointment_type_configuration_change_denied
+
+audit_evidence:
+  configuration_change_allowed_event: appointment_type_configuration_changed
+  configuration_change_denied_event: appointment_type_configuration_change_denied
+  minimum_denied_event_fields:
+    - occurred_at
+    - actor_user_id
+    - actor_display_name
+    - actor_role
+    - configuration_area
+    - attempted_action
+    - denial_reason
+    - vendor_correlation_id
+  prohibited_fields:
+    - patient_name
+    - patient_phone
+    - patient_email
+    - date_of_birth
+    - full_appointment_reason
+    - raw_ehr_payload
+
+acceptance_mapping:
+  AC-005:
+    met_by:
+      - session_requirements.account_type.patient_account_allowed
+      - enforcement_points.route_guard.deny_patient_accounts
+      - enforcement_points.navigation.hide_appointment_types_entry_for_patient_accounts
+    evidence: Patient accounts are denied before the appointment type configuration route renders and cannot reach the screen through navigation.
+  AC-006:
+    met_by:
+      - roles.ROLE-SCHEDULING-STAFF.appointment_type_configuration.save_changes
+      - enforcement_points.screen_controls.hide_or_disable_save_changes_for_unauthorized_users
+      - enforcement_points.write_guard.reject_missing_or_unapproved_role
+    evidence: Staff users without ROLE-CLINIC-ADMIN or ROLE-APPT-TYPE-CONFIG cannot persist appointment type setting changes, including direct request attempts.
