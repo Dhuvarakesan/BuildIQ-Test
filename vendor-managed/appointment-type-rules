@@ -1,0 +1,131 @@
+appointment_type_rules:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-001
+    - REQ-004
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_staff_admin_console
+  route: Administrator persona / Appointment types
+  status: configured_pending_clinic_approved_type_list
+  last_updated: "2026-11-23"
+
+purpose:
+  description: Persist the clinic-approved patient-facing booking mode for each appointment type in vendor-managed SaaS tenant configuration.
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  persistence_layer: vendor_managed_saas_configuration
+  client_only_state_allowed: false
+  phi_policy: appointment_type_names_and_booking_modes_only_no_patient_data
+
+booking_setting_model:
+  field_name: patient_facing_booking_setting
+  allowed_values:
+    - Direct-bookable
+    - Staff-confirmed
+  cardinality:
+    per_appointment_type: exactly_one
+    null_or_unset_allowed: false
+    multiple_values_allowed: false
+  behavior_definitions:
+    Direct-bookable:
+      patient_facing_result: Patient can select an eligible slot and submit a booking request that is sent to the EHR booking workflow for confirmation according to vendor and EHR rules.
+      staff_confirmation_required_before_submission: false
+    Staff-confirmed:
+      patient_facing_result: Patient can submit a request that remains pending until authorized staff confirm or decline it.
+      staff_confirmation_required_before_submission: true
+  validation_rules:
+    - reject_any_value_not_in_allowed_values
+    - require_one_booking_setting_for_every_active_configured_appointment_type
+    - require_named_staff_account_with_authorized_role_for_changes
+    - require_modal_confirmation_for_changes_where_vendor_supports_confirmation
+    - persist_changes_to_vendor_managed_saas_configuration_before_user_session_ends
+
+appointment_type_source:
+  preferred_source: clinic_approved_appointment_type_list
+  source_status: pending_clinic_approval
+  ehr_mapping_required: true
+  support_future_clinic_approved_values_without_code_change: true
+  prototype_seed_examples:
+    note: Examples only until the clinic-approved appointment type list is provided.
+    configured_types:
+      wellness_visit:
+        display_name: Wellness visit
+        active: true
+        patient_facing_booking_setting: Direct-bookable
+      follow_up_visit:
+        display_name: Follow-up visit
+        active: true
+        patient_facing_booking_setting: Direct-bookable
+      new_concern_visit:
+        display_name: New concern visit
+        active: true
+        patient_facing_booking_setting: Staff-confirmed
+      procedure_consultation:
+        display_name: Procedure consultation
+        active: true
+        patient_facing_booking_setting: Staff-confirmed
+
+persistence:
+  storage_owner: scheduling_saas_vendor
+  storage_location: tenant_level_vendor_configuration
+  survives_sign_out_sign_in: true
+  survives_new_browser_session: true
+  browser_local_storage_required: false
+  browser_session_storage_required: false
+  publication_state_required: true
+  effective_scope:
+    - pilot_clinic_location_tbd
+    - active_patient_scheduling_workflows
+  recovery_expectation: last_published_vendor_configuration_reloads_for_authorized_staff_admin_users
+
+change_control:
+  allowed_roles:
+    - ROLE-CLINIC-ADMIN
+    - ROLE-APPT-TYPE-CONFIG
+  mfa_required: true
+  named_user_required: true
+  shared_accounts_allowed: false
+  change_reason_required_where_vendor_supported: true
+  approval_note: Replace prototype_seed_examples with the clinic-approved appointment type list when provided.
+
+audit_evidence:
+  configuration_area: appointment_type_settings
+  event_names:
+    - appointment_type_configuration_changed
+    - direct_bookable_flag_changed
+    - staff_confirmation_rule_changed
+  vendor_configuration_history_required_where_supported: true
+  retain_previous_and_current_values_where_supported: true
+  minimum_fields:
+    - occurred_at
+    - actor_user_id
+    - actor_display_name
+    - actor_role
+    - configuration_area
+    - appointment_type_id
+    - appointment_type_display_name
+    - changed_setting
+    - previous_value_redacted
+    - new_value_redacted
+    - vendor_correlation_id
+  prohibited_fields:
+    - patient_name
+    - patient_phone
+    - patient_email
+    - date_of_birth
+    - full_appointment_reason
+    - raw_ehr_payload
+
+acceptance_mapping:
+  AC-001:
+    met_by:
+      - booking_setting_model.allowed_values
+      - booking_setting_model.cardinality.per_appointment_type
+      - appointment_type_source.prototype_seed_examples.configured_types
+    evidence: Every active configured appointment type must have exactly one persisted patient_facing_booking_setting with either Direct-bookable or Staff-confirmed.
+  AC-002:
+    met_by:
+      - persistence.storage_location
+      - persistence.survives_sign_out_sign_in
+      - persistence.survives_new_browser_session
+    evidence: Rule state is stored in vendor-managed tenant configuration and does not rely on browser-only storage.

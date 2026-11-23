@@ -5,6 +5,11 @@ tenant:
   system_of_record: existing_ehr_practice_management_scheduling_system
   scheduling_saas: hipaa_ready_vendor_hosted_saas_tbd
 
+source_artifacts:
+  appointment_type_rules: vendor-managed/appointment-type-rules
+  audit_reporting: vendor-managed/audit-reporting
+  ehr_integration_configuration: vendor-managed/ehr-integration-configuration
+
 compliance_gate:
   status: blocked
   phi_processing_enabled: false
@@ -83,6 +88,27 @@ phi_minimization:
   operational_copies: active_scheduling_workflows_only
   exports: authorized_audit_and_operational_reports_only
   bulk_history_migration: disabled_for_pilot
+
+appointment_type_booking_rules:
+  configuration_source: vendor-managed/appointment-type-rules
+  storage_location: vendor_managed_saas_configuration
+  client_only_state_allowed: false
+  allowed_patient_facing_booking_settings:
+    - Direct-bookable
+    - Staff-confirmed
+  exactly_one_booking_setting_per_configured_appointment_type: true
+  clinic_approved_type_list_status: pending
+  prototype_examples_until_approved_list_available:
+    - Wellness visit
+    - Follow-up visit
+    - New concern visit
+    - Procedure consultation
+  persistence_requirement:
+    survives_sign_out_sign_in: true
+    survives_new_browser_session: true
+  audit_requirement:
+    retain_previous_and_current_values_where_vendor_supports_configuration_history: true
+    configuration_change_report: vendor-managed/audit-reporting
 
 approval:
   clinic_compliance_owner: TBD
