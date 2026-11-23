@@ -1,0 +1,331 @@
+scheduling_configuration_acceptance_tests:
+  project: Clinic-booking-app-123456
+  task_id: TASK-005
+  environment: pilot
+  status: ready_for_vendor_execution
+  last_updated: "2026-11-23"
+  requirement_refs:
+    - REQ-001
+    - REQ-002
+    - REQ-003
+    - REQ-004
+    - REQ-005
+  source_artifacts:
+    appointment_type_admin_screen: vendor-managed/staff-admin/appointment-types
+    appointment_type_rules: vendor-managed/appointment-type-rules
+    rbac_policy: vendor-managed/rbac
+    patient_scheduling_workflows: vendor-managed/patient-scheduling-workflows
+    audit_reporting: vendor-managed/audit-reporting
+    audit_export_configuration: vendor-managed/audit-export-configuration
+    accessibility_baseline: vendor-managed/theme-and-accessibility-settings
+
+execution_scope:
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  test_data_policy:
+    use_synthetic_patient_context_only: true
+    use_named_staff_test_accounts: true
+    patient_phi_in_logs_exports_or_evidence: prohibited
+    appointment_type_names_source: clinic_approved_list_or_prototype_seed_examples_until_approved
+  required_accounts:
+    authorized_configuration_user:
+      account_type: named_staff
+      roles:
+        - ROLE-CLINIC-ADMIN
+      mfa_completed: true
+    unauthorized_staff_user:
+      account_type: named_staff
+      roles:
+        - ROLE-SCHEDULING-STAFF
+      mfa_completed: true
+      must_not_have_roles:
+        - ROLE-CLINIC-ADMIN
+        - ROLE-APPT-TYPE-CONFIG
+    patient_user:
+      account_type: patient
+      mfa_completed: vendor_patient_flow_equivalent_where_applicable
+    audit_reviewer_user:
+      account_type: named_staff
+      roles:
+        - ROLE-AUDIT-REVIEWER
+      mfa_completed: true
+  shared_preconditions:
+    - Vendor tenant is configured under signed BAA.
+    - Appointment type configuration screen is available at Administrator persona / Appointment types for authorized staff.
+    - At least one active appointment type can be configured as Direct-bookable.
+    - At least one active appointment type can be configured as Staff-confirmed.
+    - Vendor-managed configuration publication mechanism is enabled.
+    - Browser local storage and session storage are cleared before persistence and routing verification.
+
+acceptance_scenarios:
+  - id: SC-001-authorized-save-persists
+    title: Authorized MFA-verified configuration user can save appointment type booking setting
+    covers_acceptance_criteria:
+      - AC-009
+    persona: authorized_configuration_user
+    preconditions:
+      - User is signed in with a named staff account.
+      - User has completed MFA.
+      - User has ROLE-CLINIC-ADMIN or ROLE-APPT-TYPE-CONFIG.
+      - Appointment type test fixture identifies one active appointment type to change.
+    steps:
+      - Navigate to Administrator persona / Appointment types.
+      - Confirm the Appointment types H1 and appointment type booking settings table render.
+      - Change the selected appointment type patient_facing_booking_setting to the alternate allowed value.
+      - Activate Save changes.
+      - Confirm the vendor save confirmation modal.
+      - Wait for vendor-managed configuration publication or the vendor equivalent success state.
+    expected_results:
+      - Save changes is visible and enabled only after a valid setting change.
+      - Confirmation modal traps focus, supports Cancel or Escape, and returns focus to Save changes when dismissed.
+      - Confirming save stores the new value in vendor-managed SaaS configuration.
+      - The saved confirmation panel or vendor equivalent success state is shown.
+      - No patient name, contact, date of birth, full appointment reason, raw EHR payload, or credentials are written to test evidence.
+    evidence_required:
+      - Screenshot or vendor export of changed appointment type setting before save.
+      - Screenshot or vendor export of successful saved state after publication.
+      - Vendor configuration version, correlation identifier, or equivalent publication evidence.
+
+  - id: SC-002-unauthorized-denial-no-persist
+    title: Unauthorized staff and patient accounts cannot access or persist appointment type configuration
+    covers_acceptance_criteria:
+      - AC-009
+    personas:
+      - unauthorized_staff_user
+      - patient_user
+    preconditions:
+      - Baseline appointment type configuration values are captured.
+      - Unauthorized staff user lacks ROLE-CLINIC-ADMIN and ROLE-APPT-TYPE-CONFIG.
+      - Patient account is active for patient scheduling only.
+    steps:
+      - Attempt to reach Administrator persona / Appointment types through navigation as each unauthorized persona.
+      - Attempt direct route access to the appointment type configuration URL or vendor route identifier.
+      - Where the screen is partially visible due to vendor limitation, attempt to change a booking setting and save.
+      - Reload the configuration as an authorized user and compare to the baseline.
+    expected_results:
+      - Patient account cannot see the staff appointment types navigation entry.
+      - Patient account is denied before screen content renders.
+      - Unauthorized staff account cannot save appointment type settings.
+      - Direct route or direct request bypass attempts are denied.
+      - Baseline configuration remains unchanged after every unauthorized attempt.
+      - Denial event is recorded as appointment_type_configuration_change_denied where vendor audit reporting supports denied configuration events.
+    evidence_required:
+      - Access denied screenshot or vendor denial state for each unauthorized persona.
+      - Authorized reload showing baseline values unchanged.
+      - Denied audit event export or vendor limitation record.
+
+  - id: SC-003-persisted-reload-new-session
+    title: Saved appointment type configuration reloads after sign-out and a new browser session
+    covers_acceptance_criteria:
+      - AC-009
+    persona: authorized_configuration_user
+    preconditions:
+      - SC-001 has saved and published a known appointment type booking setting.
+      - Browser local storage and session storage are cleared.
+    steps:
+      - Sign out of the authorized staff session.
+      - Close or reset the browser context.
+      - Start a new browser session.
+      - Sign in with the same or another authorized named staff account with MFA.
+      - Navigate to Administrator persona / Appointment types.
+      - Inspect the previously changed appointment type.
+    expected_results:
+      - Previously saved setting reloads from vendor-managed tenant configuration.
+      - Configuration state does not depend on browser local storage or session storage.
+      - Publication or current configuration status indicates the saved setting is active for new patient scheduling sessions.
+    evidence_required:
+      - Browser storage cleared evidence or test runner log.
+      - Reloaded screen capture or vendor export showing the persisted value.
+
+  - id: SC-004-direct-bookable-patient-routing
+    title: Direct-bookable appointment type routes patient to slot selection
+    covers_acceptance_criteria:
+      - AC-009
+    persona: patient_user
+    preconditions:
+      - An active appointment type is published with patient_facing_booking_setting = Direct-bookable.
+      - EHR availability test fixture has at least one eligible available slot or a vendor-supported synthetic slot response.
+      - A new patient booking session is started after configuration publication.
+    steps:
+      - Start a new patient scheduling session.
+      - Choose the Direct-bookable appointment type.
+      - Continue through provider and location selection as required by the vendor.
+      - Trigger availability lookup.
+      - Select an available slot.
+    expected_results:
+      - Patient is routed to the direct booking workflow.
+      - Available slot buttons or vendor equivalent selectable time controls are shown after successful lookup.
+      - Slot controls are keyboard reachable and expose selected state.
+      - Patient can proceed toward booking confirmation only after selecting an eligible slot.
+      - No pending staff request is created instead of the direct booking flow.
+    evidence_required:
+      - Patient workflow screen capture showing slot selection.
+      - Vendor route decision event patient_booking_workflow_routed where supported.
+      - EHR command or vendor test fixture evidence excluding patient PHI.
+
+  - id: SC-005-staff-confirmed-patient-routing
+    title: Staff-confirmed appointment type routes patient to request intake without slot selection
+    covers_acceptance_criteria:
+      - AC-009
+    persona: patient_user
+    preconditions:
+      - An active appointment type is published with patient_facing_booking_setting = Staff-confirmed.
+      - A new patient booking session is started after configuration publication.
+    steps:
+      - Start a new patient scheduling session.
+      - Choose the Staff-confirmed appointment type.
+      - Continue to request intake.
+      - Submit the minimum vendor-required synthetic request details.
+      - Observe the confirmation state.
+    expected_results:
+      - Patient is routed to the staff-confirmed request workflow.
+      - Availability lookup and selected slot buttons are not offered before submission.
+      - Selected slot is not required.
+      - Submission creates a pending staff request or vendor equivalent.
+      - No direct confirmed EHR booking is created before staff review.
+    evidence_required:
+      - Patient workflow screen capture showing request intake or pending confirmation.
+      - Pending request reference or vendor equivalent non-PHI workflow reference.
+      - Vendor route decision event patient_booking_workflow_routed where supported.
+
+  - id: SC-006-configuration-audit-evidence
+    title: Configuration audit evidence includes named user, timestamp, appointment type, and changed setting where vendor supports those fields
+    covers_acceptance_criteria:
+      - AC-009
+    personas:
+      - authorized_configuration_user
+      - audit_reviewer_user
+    preconditions:
+      - SC-001 has generated at least one successful appointment type configuration change.
+      - Audit reviewer or clinic administrator can access vendor audit report exports.
+    steps:
+      - Open the vendor configuration change report or export covering the SC-001 timestamp.
+      - Filter by configuration_area = appointment_type_settings where supported.
+      - Locate the appointment_type_configuration_changed, direct_bookable_flag_changed, or staff_confirmation_rule_changed event.
+      - Confirm required fields are present when vendor reporting supports field-level export.
+      - If any field is unsupported, record the vendor limitation and compensating control.
+    expected_results:
+      - Audit evidence includes occurred_at timestamp.
+      - Audit evidence includes actor_user_id and actor_display_name for the named staff account.
+      - Audit evidence includes actor_role.
+      - Audit evidence identifies appointment_type_id or appointment_type_display_name where vendor supports appointment type fields.
+      - Audit evidence includes changed_setting and redacted previous and new values where vendor supports before/after configuration fields.
+      - Audit evidence includes vendor_correlation_id or vendor equivalent.
+      - Audit evidence excludes patient name, phone, email, date of birth, full appointment reason, raw EHR payload, and credentials.
+    evidence_required:
+      - Redacted audit report export or vendor dashboard capture.
+      - Vendor limitation record for unsupported event or field, including owner and review date.
+
+accessibility_validation:
+  id: A11Y-001-admin-appointment-types-wcag-2-1-aa
+  title: Appointment type configuration screen keyboard and WCAG 2.1 AA validation
+  covers_acceptance_criteria:
+    - AC-010
+  route: Administrator persona / Appointment types
+  page_id: admin-appointment-types
+  standard: WCAG_2_1_AA
+  required_viewports:
+    - mobile_360x640
+    - tablet_768x1024
+    - desktop_1440x900
+  automated_tools:
+    accepted:
+      - vendor_supported_accessibility_scanner
+      - axe
+      - lighthouse_accessibility
+    required_result: no_critical_or_serious_violations
+  keyboard_walkthrough:
+    required: true
+    checks:
+      - Skip link or vendor equivalent moves focus to main_staff_admin_content.
+      - Top bar persona switcher is reachable and operable by keyboard where available to tester.
+      - Left or mobile navigation exposes Appointment types with a text label and non-color selected indicator.
+      - Appointment type table or mobile cards are reachable in logical visual order.
+      - Every booking setting select is reachable by Tab and operable with native keyboard controls.
+      - Visible focus indicator is present on navigation entries, selects, Save changes, modal controls, and close or cancel controls.
+      - Save confirmation modal traps focus while open.
+      - Escape or Cancel dismisses the modal.
+      - Focus returns to Save changes after modal dismissal.
+      - No keyboard trap exists outside the intentional modal focus trap.
+  wcag_checks:
+    - one_h1_per_page
+    - headings_in_order
+    - named_header_nav_main_or_vendor_equivalent_landmarks
+    - status_regions_have_accessible_names
+    - selects_have_accessible_names_using_appointment_type_display_name
+    - instructions_and_errors_programmatically_associated
+    - required_fields_programmatically_indicated
+    - normal_text_contrast_at_least_4_5_to_1
+    - large_text_contrast_at_least_3_to_1
+    - ui_components_and_focus_indicator_contrast_at_least_3_to_1
+    - interactive_targets_at_least_44_by_44_px_or_vendor_supported_equivalent_spacing
+    - responsive_reflow_without_two_dimensional_scrolling_except_data_table_vendor_exception
+    - color_not_used_as_only_status_indicator
+    - reduced_motion_does_not_block_workflow_completion
+  required_evidence_fields:
+    - page_id
+    - validation_date
+    - tester_or_tool
+    - viewport
+    - result
+    - defects
+    - remediation_status
+    - approver
+  launch_gate:
+    pass_condition: automated_and_manual_results_pass_with_no_unresolved_wcag_2_1_aa_blockers
+    unresolved_critical_or_serious_defect_blocks_pilot: true
+    unresolved_keyboard_blocker_blocks_pilot: true
+
+audit_field_expectations:
+  successful_configuration_change:
+    event_names:
+      - appointment_type_configuration_changed
+      - direct_bookable_flag_changed
+      - staff_confirmation_rule_changed
+    required_where_vendor_supported:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - configuration_area
+      - appointment_type_id
+      - appointment_type_display_name
+      - changed_setting
+      - previous_value_redacted
+      - new_value_redacted
+      - vendor_correlation_id
+  denied_configuration_change:
+    event_names:
+      - appointment_type_configuration_change_denied
+    required_where_vendor_supported:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - configuration_area
+      - attempted_action
+      - denial_reason
+      - vendor_correlation_id
+  prohibited_in_all_evidence:
+    - patient_name
+    - patient_phone
+    - patient_email
+    - date_of_birth
+    - full_appointment_reason
+    - raw_ehr_payload
+    - credentials
+    - otp_code
+
+acceptance_criteria_mapping:
+  AC-009:
+    satisfied_by:
+      - SC-001-authorized-save-persists
+      - SC-002-unauthorized-denial-no-persist
+      - SC-003-persisted-reload-new-session
+      - SC-004-direct-bookable-patient-routing
+      - SC-005-staff-confirmed-patient-routing
+      - SC-006-configuration-audit-evidence
+  AC-010:
+    satisfied_by:
+      - A11Y-001-admin-appointment-types-wcag-2-1-aa
