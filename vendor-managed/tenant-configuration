@@ -1,0 +1,92 @@
+tenant:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  location_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  scheduling_saas: hipaa_ready_vendor_hosted_saas_tbd
+
+compliance_gate:
+  status: blocked
+  phi_processing_enabled: false
+  pilot_readiness: blocked
+  baa:
+    required: true
+    signed: false
+    evidence_location: TBD
+    blocker_message: Signed BAA is required before any scheduling PHI is entered into the SaaS.
+  required_vendor_security_evidence:
+    hipaa_security_documentation:
+      required: true
+      status: pending
+      evidence_location: TBD
+    third_party_security_assessment:
+      required: true
+      status: pending
+      evidence_location: TBD
+    cve_management_process:
+      required: true
+      status: pending
+      evidence_location: TBD
+    sbom_or_equivalent_inventory:
+      required: true
+      status: pending
+      evidence_location: TBD
+    encryption_access_control_audit_evidence:
+      required: true
+      status: pending
+      evidence_location: TBD
+    retention_deletion_controls:
+      required: true
+      status: pending
+      evidence_location: TBD
+  operational_commitments:
+    uptime: TBD
+    response_time: TBD
+    rollback: TBD
+    incident_support: TBD
+    non_production_validation: TBD
+    retention: TBD
+    deletion: TBD
+  readiness_rules:
+    require_signed_baa_before_phi: true
+    require_all_vendor_evidence_accepted_before_phi: true
+    block_pilot_for_open_critical_or_high_findings: true
+    allow_critical_or_high_only_with_formal_risk_acceptance: true
+    prohibit_bulk_scheduling_history_migration_for_pilot: true
+    keep_ehr_as_appointment_and_availability_system_of_record: true
+
+security_findings:
+  classification:
+    severity_values:
+      - Critical
+      - High
+      - Medium
+      - Low
+    blocking_severities:
+      - Critical
+      - High
+    blocking_scope: in_scope_production_scheduling_workflows
+  open_findings: []
+  formal_risk_acceptance_required_fields:
+    - finding_id
+    - severity
+    - affected_workflow
+    - compensating_controls
+    - accepting_authority
+    - decision_date
+    - expiration_or_review_date
+    - remediation_owner
+
+phi_minimization:
+  reminder_message_body_phi: clinic_name_only
+  logs: minimize_phi
+  operational_copies: active_scheduling_workflows_only
+  exports: authorized_audit_and_operational_reports_only
+  bulk_history_migration: disabled_for_pilot
+
+approval:
+  clinic_compliance_owner: TBD
+  security_reviewer: TBD
+  clinic_technical_owner: TBD
+  last_updated: "2026-11-23"
+  change_control_note: Update this configuration only after evidence is accepted and authorized clinic approval is recorded.
