@@ -1,0 +1,140 @@
+scheduling_orchestration_rules:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-002
+    - REQ-004
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_application_services
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+  source_artifacts:
+    appointment_type_rules: vendor-managed/appointment-type-rules
+    patient_scheduling_workflows: vendor-managed/patient-scheduling-workflows
+    ehr_integration_adapter: vendor-managed/ehr-integration-adapter
+    audit_reporting: vendor-managed/audit-reporting
+
+purpose:
+  description: Apply the persisted patient-facing appointment type booking setting when a new patient booking session chooses an appointment type.
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  configuration_source: vendor_managed_saas_configuration
+  phi_policy: route_by_appointment_type_id_and_booking_setting_only_no_patient_phi_in_routing_logs
+
+configuration_read:
+  source: appointment_type_rules.booking_setting_model
+  required_field: patient_facing_booking_setting
+  allowed_values:
+    - Direct-bookable
+    - Staff-confirmed
+  lookup_key: appointment_type_id
+  clinic_approved_values_supported_without_code_change: true
+  reject_unconfigured_active_appointment_type: true
+  reject_unsupported_booking_setting: true
+  fallback_to_prototype_names: prohibited_for_production_routing
+
+session_application:
+  effective_for: new_patient_booking_sessions_started_after_vendor_configuration_publication
+  session_snapshot_required_where_vendor_supported: true
+  in_progress_submission_policy:
+    preserve_existing_session_route: true
+    do_not_rewrite_selected_slot_or_pending_request_state: true
+    do_not_interrupt_confirmation_or_submit_step: true
+    show_updated_behavior_only_after_new_session_start: true
+  publication_state:
+    patient_sessions_use_last_published_configuration: true
+    draft_or_unsaved_staff_admin_changes_affect_patient_routing: false
+    failed_publication_affects_patient_routing: false
+
+routing_rules:
+  Direct-bookable:
+    route_name: direct_booking_availability_lookup
+    patient_workflow: patient.direct_booking
+    entry_step: choose_available_slot
+    required_services:
+      - ehr_availability_lookup
+      - slot_selection
+      - booking_confirmation_submission
+    availability_query:
+      source: vendor-managed/ehr-integration-adapter.supported_workflows.availability_query
+      filter_by:
+        - appointment_type_external_id
+        - provider_external_id_or_first_available
+        - location_external_id
+      require_slot_direct_bookable: true
+      writes_to_ehr: false
+    submit_behavior:
+      command: booking_command
+      source: vendor-managed/ehr-integration-adapter.supported_workflows.booking_command
+      creates_direct_confirmed_booking: vendor_and_ehr_rules_permit_after_patient_confirms_selected_slot
+      staff_confirmation_required_before_submission: false
+    patient_visible_result: Patient can choose an eligible available slot and submit the booking request into the EHR booking workflow.
+  Staff-confirmed:
+    route_name: staff_confirmed_pending_request_intake
+    patient_workflow: patient.appointment_request
+    entry_step: submit_staff_confirmed_request
+    required_services:
+      - request_intake
+      - contact_preference_capture
+      - pending_staff_review_queue
+    availability_query:
+      enabled_before_submit: false
+      selected_slot_required: false
+    submit_behavior:
+      command: create_pending_staff_confirmed_request
+      writes_confirmed_booking_to_ehr: false
+      creates_direct_confirmed_booking: false
+      staff_confirmation_required_before_submission: true
+    patient_visible_result: Patient submits a request that remains pending until authorized staff confirm or decline it.
+
+audit_events:
+  enabled_where_vendor_supported: true
+  destination: vendor-managed/audit-reporting.configuration_change_report
+  events:
+    - name: patient_workflow_routing_rule_published
+      trigger: published_appointment_type_booking_setting_changes_route_for_future_sessions
+      configuration_area: direct_booking_rules
+    - name: staff_confirmation_routing_rule_published
+      trigger: published_appointment_type_booking_setting_changes_staff_confirmation_behavior_for_future_sessions
+      configuration_area: staff_confirmation_rules
+  minimum_fields:
+    - occurred_at
+    - actor_user_id
+    - actor_display_name
+    - actor_role
+    - configuration_area
+    - appointment_type_id
+    - appointment_type_display_name
+    - changed_setting
+    - previous_value_redacted
+    - new_value_redacted
+    - vendor_correlation_id
+  prohibited_fields:
+    - patient_name
+    - patient_phone
+    - patient_email
+    - date_of_birth
+    - full_appointment_reason
+    - raw_ehr_payload
+
+operational_safeguards:
+  ehr_remains_system_of_record: true
+  availability_is_looked_up_from_ehr_or_vendor_supported_ehr_cache: true
+  confirmed_booking_is_created_only_through_ehr_booking_workflow: true
+  staff_confirmed_requests_remain_pending_until_authorized_staff_action: true
+  browser_local_storage_required_for_routing: false
+  browser_session_storage_allowed_only_for_vendor_session_snapshot: true
+  route_decision_logs_include_phi: false
+
+acceptance_mapping:
+  AC-007:
+    met_by:
+      - routing_rules.Direct-bookable.route_name
+      - routing_rules.Direct-bookable.availability_query
+      - routing_rules.Direct-bookable.submit_behavior
+    evidence: Direct-bookable appointment types route new patient sessions to availability lookup, eligible slot selection, and booking submission through the EHR booking workflow.
+  AC-008:
+    met_by:
+      - routing_rules.Staff-confirmed.route_name
+      - routing_rules.Staff-confirmed.availability_query.enabled_before_submit
+      - routing_rules.Staff-confirmed.submit_behavior.creates_direct_confirmed_booking
+    evidence: Staff-confirmed appointment types route new patient sessions to pending request intake, do not require slot selection, and do not create a direct confirmed booking.

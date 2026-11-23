@@ -1,0 +1,163 @@
+patient_scheduling_workflows:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirements:
+    - REQ-002
+    - REQ-004
+  vendor_surface: hipaa_ready_vendor_hosted_scheduling_saas_patient_portal
+  status: configured_pending_vendor_application
+  last_updated: "2026-11-23"
+  source_artifacts:
+    patient_scheduling_shell: vendor-managed/patient-scheduling-shell
+    appointment_type_rules: vendor-managed/appointment-type-rules
+    scheduling_orchestration_rules: vendor-managed/scheduling-orchestration-rules
+
+purpose:
+  description: Present the correct patient scheduling workflow after appointment type selection based on the configured patient-facing booking setting.
+  persona: patient
+  clinic_scope: pilot_clinic_location_tbd
+  system_of_record: existing_ehr_practice_management_scheduling_system
+  phi_policy: collect_only_vendor_required_active_workflow_fields_and_exclude_phi_from_routing_audit_events
+
+session_start:
+  applies_to: new_patient_booking_sessions
+  configuration_version_source: last_published_vendor_managed_appointment_type_configuration
+  session_snapshot_required_where_vendor_supported: true
+  in_progress_submission_behavior:
+    preserve_route_selected_at_session_start: true
+    preserve_entered_form_state_where_vendor_supported: true
+    avoid_redirecting_patient_mid_submission: true
+    updated_booking_behavior_visible_on_next_new_session: true
+
+appointment_type_selection:
+  source: appointment_type_rules.active_configured_appointment_types
+  required_fields:
+    - appointment_type_id
+    - display_name
+    - patient_facing_booking_setting
+    - active
+  unsupported_or_missing_setting:
+    block_new_session_progress: true
+    patient_message: This appointment type is not available for online scheduling right now.
+    operational_event: appointment_type_routing_configuration_invalid
+    include_patient_phi_in_event: false
+  route_decision:
+    Direct-bookable: show_direct_booking_slot_selection
+    Staff-confirmed: show_staff_confirmed_request_intake
+
+direct_booking_workflow:
+  id: show_direct_booking_slot_selection
+  route_or_vendor_screen: patient.direct_booking
+  shown_for_booking_setting: Direct-bookable
+  steps:
+    - choose_appointment_type
+    - choose_provider_or_first_available
+    - choose_location
+    - lookup_available_slots
+    - choose_available_slot
+    - confirm_booking
+  required_components:
+    - card: appointment_type_picker
+    - card: provider_location_selector
+    - status_panel: ehr_availability_freshness
+    - selected_slot_buttons: available_times
+    - modal: booking_confirmation
+    - tag_badge: direct_bookable
+  availability_behavior:
+    lookup_enabled: true
+    source: scheduling_orchestration_rules.routing_rules.Direct-bookable.availability_query
+    slot_buttons_visible_after_successful_lookup: true
+    slot_buttons_minimum_touch_target_px: 44
+    unavailable_state_does_not_offer_confirmed_booking: true
+  submission_behavior:
+    requires_selected_slot: true
+    submit_target: scheduling_orchestration_rules.routing_rules.Direct-bookable.submit_behavior.command
+    may_create_confirmed_booking_after_patient_confirmation: true
+    staff_pending_request_created_instead: false
+  patient_status_copy:
+    status_tag_label: Available slots shown
+    confirmation_state: selected_slot_ready_for_confirmation
+
+staff_confirmed_request_workflow:
+  id: show_staff_confirmed_request_intake
+  route_or_vendor_screen: patient.appointment_request
+  shown_for_booking_setting: Staff-confirmed
+  steps:
+    - choose_appointment_type
+    - provide_request_details
+    - provide_contact_preference
+    - submit_staff_confirmed_request
+    - show_pending_staff_review_confirmation
+  required_components:
+    - card: request_details
+    - card: contact_preference
+    - status_panel: staff_review_expectation
+    - modal: request_submitted_confirmation
+    - tag_badge: pending_staff_confirmation
+  availability_behavior:
+    lookup_enabled_before_submit: false
+    slot_buttons_visible: false
+    selected_slot_required: false
+  submission_behavior:
+    requires_selected_slot: false
+    submit_target: scheduling_orchestration_rules.routing_rules.Staff-confirmed.submit_behavior.command
+    creates_pending_request: true
+    creates_direct_confirmed_booking: false
+    confirmed_ehr_booking_created_before_staff_review: false
+  patient_status_copy:
+    status_tag_label: Pending staff request
+    confirmation_state: request_received_pending_staff_confirmation
+
+accessibility_and_responsiveness:
+  inherits_from: vendor-managed/patient-scheduling-shell.accessibility
+  mobile_first: true
+  keyboard_access:
+    appointment_type_picker_reachable: true
+    direct_booking_slot_buttons_reachable_when_present: true
+    staff_confirmed_request_fields_reachable_when_present: true
+    confirmation_modal_focus_trap_required: true
+    visible_focus_indicator_required: true
+  announcements:
+    workflow_change_announced_after_appointment_type_selection: true
+    slot_lookup_status_announced_for_direct_bookable: true
+    pending_request_confirmation_announced_for_staff_confirmed: true
+  wcag_standard: WCAG_2_1_AA
+
+audit_and_operational_events:
+  workflow_route_decision_event:
+    enabled_where_vendor_supported: true
+    event_name: patient_booking_workflow_routed
+    include:
+      - occurred_at
+      - appointment_type_id
+      - appointment_type_display_name
+      - patient_facing_booking_setting
+      - selected_workflow_id
+      - configuration_version
+      - vendor_correlation_id
+    exclude:
+      - patient_name
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - raw_ehr_payload
+  configuration_driven_behavior_change_events:
+    source: vendor-managed/scheduling-orchestration-rules.audit_events
+    emitted_on_publication_where_supported: true
+
+acceptance_mapping:
+  AC-007:
+    met_by:
+      - appointment_type_selection.route_decision.Direct-bookable
+      - direct_booking_workflow.availability_behavior.lookup_enabled
+      - direct_booking_workflow.availability_behavior.slot_buttons_visible_after_successful_lookup
+      - direct_booking_workflow.submission_behavior.requires_selected_slot
+    evidence: A new patient session choosing a Direct-bookable appointment type is routed to the direct booking workflow with availability lookup and slot selection before confirmation.
+  AC-008:
+    met_by:
+      - appointment_type_selection.route_decision.Staff-confirmed
+      - staff_confirmed_request_workflow.availability_behavior.lookup_enabled_before_submit
+      - staff_confirmed_request_workflow.submission_behavior.creates_pending_request
+      - staff_confirmed_request_workflow.submission_behavior.creates_direct_confirmed_booking
+    evidence: A new patient session choosing a Staff-confirmed appointment type is routed to request intake, no slot is selected, and no direct confirmed booking is created.
