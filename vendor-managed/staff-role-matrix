@@ -1,0 +1,62 @@
+# Staff Role Matrix
+
+Purpose: define the pilot role-based access controls for staff schedule data, failed reminder follow-up, and appointment type configuration in the HIPAA-ready scheduling SaaS.
+
+Scope:
+- Pilot clinic location only.
+- SaaS-native staff and administrator accounts.
+- Schedule viewing, pending request handling, failed reminder follow-up, appointment type configuration, and audit reporting workflows.
+- Existing EHR/practice management system remains the appointment and availability system of record.
+
+Related requirement:
+- REQ-003
+
+Related controls:
+- ARD-DEC-005
+- ARD-SEC-001
+- ARC-CON-009
+- ARC-RISK-007
+
+## Role Definitions
+
+| Role ID | Role name | Intended users | MFA required | Shared account allowed | Audit required |
+|---|---|---|---:|---:|---:|
+| ROLE-SCHEDULING-STAFF | Scheduling Staff | Named staff responsible for daily schedule review, pending request follow-up, and failed reminder follow-up | Yes | No | Yes |
+| ROLE-APPT-TYPE-CONFIG | Appointment Type Configuration Manager | Named clinic users explicitly authorized to maintain direct-bookable and staff-confirmed appointment type settings | Yes | No | Yes |
+| ROLE-CLINIC-ADMIN | Clinic Administrator | Named clinic administrators responsible for SaaS configuration, role assignment requests, and audit review | Yes | No | Yes |
+| ROLE-AUDIT-REVIEWER | Audit Reviewer | Named clinic compliance, security, or technical owner reviewing audit exports and access activity | Yes | No | Yes |
+
+## Permission Matrix
+
+| Permission / workflow | Scheduling Staff | Appointment Type Configuration Manager | Clinic Administrator | Audit Reviewer | Notes |
+|---|---:|---:|---:|---:|---|
+| View daily schedule for pilot location | Allow | Allow | Allow | Read-only if vendor supports | Daily schedule data must be limited to the pilot clinic scope. |
+| View confirmed appointments and pending requests | Allow | Allow | Allow | Read-only if vendor supports | Display only data needed for active scheduling workflows. |
+| Confirm or decline staff-confirmed pending requests | Allow | Allow | Allow | Deny | Staff action must be attributable to the named user. |
+| View failed reminder delivery attempts for follow-up | Allow | Allow | Allow | Read-only if vendor supports | Reminder content must remain PHI-minimized; follow-up lists should avoid message bodies with appointment details. |
+| Modify appointment type direct-bookable/staff-confirmed configuration | Deny unless explicitly granted ROLE-APPT-TYPE-CONFIG | Allow | Allow | Deny | A scheduling staff user must not receive this permission by default. |
+| Modify reminder templates or reminder delivery settings | Deny | Deny unless explicitly approved | Allow | Deny | Reminder message bodies must use clinic-name-only PHI minimization unless separately approved. |
+| Invite, disable, or change staff/admin accounts | Deny | Deny | Allow | Deny | Account changes must follow the account lifecycle procedure. |
+| Assign or remove roles | Deny | Deny | Allow | Deny | Role changes require named-user authorization and auditability. |
+| Access audit reports or activity exports | Deny unless explicitly approved | Deny unless explicitly approved | Allow | Allow | Exports must be limited to authorized audit and operational reports. |
+| Access vendor tenant security/compliance settings | Deny | Deny | Allow | Read-only if vendor supports | Changes remain blocked by compliance readiness requirements until accepted. |
+
+## Enforcement Rules
+
+1. All staff and administrator users must authenticate with individual named SaaS accounts.
+2. MFA must be enabled before any staff or administrator account can access pilot workflows.
+3. Shared or generic accounts, including accounts such as scheduler, frontdesk, clinicstaff, admin, or temp, are prohibited.
+4. Scheduling Staff may access the daily schedule, pending requests, and failed reminder follow-up queues, but may not modify appointment type configuration unless ROLE-APPT-TYPE-CONFIG is explicitly assigned.
+5. Appointment type configuration changes must be performed only by Clinic Administrator or Appointment Type Configuration Manager users with MFA enabled.
+6. Configuration changes, staff actions, role changes, login activity, and audit/report access must be auditable through vendor-supported activity logging.
+7. PHI in logs, reports, exports, operational copies, SMS, and email must remain minimized according to the tenant configuration and compliance readiness checklist.
+8. Access remains limited to the pilot clinic location unless the clinic formally approves a scope change.
+
+## Acceptance Mapping
+
+| Acceptance criterion | Control implementation |
+|---|---|
+| AC-005 | ROLE-SCHEDULING-STAFF allows daily schedule access and denies appointment type configuration by default. Explicit ROLE-APPT-TYPE-CONFIG assignment is required for configuration access. |
+| AC-006 | ROLE-CLINIC-ADMIN allows appointment type configuration, requires MFA, and requires auditable activity for configuration and account changes. |
+| AC-007 | Every role definition prohibits shared accounts and requires individual named SaaS accounts. |
+
