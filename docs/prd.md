@@ -1,107 +1,117 @@
 # Product Requirements Document (PRD)
 
-> Requirement IDs should remain stable after approval so downstream ARD and feature specifications retain traceability.
+> Requirement IDs must remain stable after approval so downstream ARD and feature specifications retain traceability.
 
 ## Document Metadata
 
-- **Product/Application:** Single-File HTML Todo Prototype
-- **Document ID:** PRD-HTML-TODO-PROTOTYPE
+- **Product/Application:** Online Patient Scheduling and Reminders
+- **Document ID:** PRD-OPSR
 - **Version:** 0.1
 - **Status:** Draft
 - **Owner:** TBD
 - **Contributors:** TBD
-- **Last Updated:** 2026-11-19
+- **Last Updated:** 2026-11-23
 
 ---
 
 ## 1. Executive Summary
 
-This PRD defines a same-day, single-file HTML prototype for a simple todo list. The prototype is intended for stakeholder review by a small business and will demonstrate a clean, comparable core todo experience in Desktop Chrome.
+The clinic needs an online scheduling experience because patients can currently book only by phone during office hours, causing lost bookings when patients try to schedule outside those hours. The first release will let new and existing patients book appointments online, reschedule eligible appointments, and receive automated reminders.
 
-The prototype will allow a general visitor to add tasks, mark tasks complete, and delete tasks. It will not include backend services, persistence after refresh, user accounts, sync, collaboration, due dates, reminders, analytics, or formal accessibility requirements.
+The product will support direct booking for clinic-selected low-risk appointment types, while appointment types that require review will create pending requests for staff confirmation. Staff will also get a single daily schedule view that shows appointments and pending requests grouped by provider and time.
 
-The expected value is to help stakeholders validate whether users need a todo list and decide whether to proceed with a more complete todo product after comparing the core experience against competitor todo apps.
+Because this is a healthcare product for a HIPAA-covered clinic, the release must protect patient information, limit reminder message content, support identity verification for rescheduling, and integrate with the existing EHR/practice management scheduling system.
 
 ## 2. Problem Statement
 
-Stakeholders need a fast, concrete way to evaluate whether a simple todo list concept is worth further investment. Today, the need for a todo list is not yet validated, and stakeholders need to compare the basic experience against competitor todo apps before deciding whether to proceed.
+Patients who want to book outside office hours cannot complete scheduling online today. This creates missed booking opportunities for the clinic and forces staff to handle scheduling manually by phone. Staff also need one consolidated place to view the day's schedule and pending scheduling work.
+
+The current evidence baseline will be established by tracking after-hours missed calls and voicemail booking requests before launch.
 
 ## 3. Product Vision
 
-The target end state is a review-ready, self-contained HTML file that opens in Desktop Chrome and presents a clean, modern todo list experience. A general visitor can add a task, see it appear in the list, mark it complete, and delete it immediately, enabling stakeholders to judge the core interaction quality without backend complexity.
+Patients can book and reschedule eligible appointments online at any time, receive compliant reminders, and avoid unnecessary phone calls. Staff can manage the day's schedule and pending appointment requests from one reliable view, while the clinic maintains HIPAA-compliant handling of scheduling data.
 
 ## 4. Goals and Success Measures
 
 ### 4.1 Goals
 
-- Provide a same-day prototype that demonstrates the core todo flow.
-- Enable stakeholders to compare the core experience against competitor todo apps.
-- Support an informed decision on whether to proceed with a more complete todo product.
+- Reduce missed booking opportunities outside office hours.
+- Enable new and existing patients to book online with basic identity and contact capture.
+- Enable verified patients to reschedule eligible appointments online before a configurable cutoff.
+- Reduce no-shows through automated SMS and email reminders.
+- Give staff a single daily schedule view with appointments and pending requests grouped by provider and time.
 
 ### 4.2 Success Measures
 
 | ID | Measure | Baseline | Target | Measurement Method |
 |---|---|---:|---:|---|
-| KPI-001 | Informal stakeholder feedback on the core todo experience | No prototype feedback collected | Stakeholders provide feedback after reviewing add, complete, and delete interactions | Stakeholder review discussion |
-| KPI-002 | Proceed/no-proceed decision readiness | Decision not made | Stakeholders can decide whether to proceed with a more complete todo product | Stakeholder review outcome |
+| KPI-001 | After-hours missed booking opportunities | TBD | TBD | Count after-hours missed calls and voicemail booking requests during pre-launch baseline and compare to pilot period |
+| KPI-002 | Online booking adoption | TBD | TBD | Count completed online bookings as a share of total bookings during the pilot |
+| KPI-003 | No-show rate | TBD | TBD | Compare no-show rate before and after automated reminders launch |
+| KPI-004 | Staff scheduling workload | TBD | TBD | Track scheduling-related phone calls and staff-confirmed pending requests during baseline and pilot |
 
 ## 5. Scope
 
 ### 5.1 In Scope
 
-- Single self-contained HTML file with inline CSS and JavaScript.
-- Clean modern layout with simple responsive styling.
-- Empty initial state with a short prompt to add a task.
-- Add task interaction.
-- Prevent blank tasks and show a simple inline error message.
-- Mark task complete interaction.
-- Immediate task deletion interaction.
-- Desktop Chrome support.
+- Online appointment booking for new and existing patients.
+- Direct online booking for clinic-selected low-risk appointment types.
+- Online request submission for appointment types that require staff confirmation.
+- Online rescheduling for eligible appointments after patient identity verification.
+- Automated SMS and email appointment reminders.
+- Staff daily schedule view showing appointments and pending requests grouped by provider and time.
+- Integration with the existing EHR/practice management scheduling system.
+- Pilot rollout within one clinic location.
 
 ### 5.2 Out of Scope
 
-- User accounts.
-- Backend services or sync.
-- Team sharing or collaboration.
-- Due dates.
-- Reminders.
-- Analytics.
-- Persistence after browser refresh.
-- Formal accessibility requirements.
-- Production readiness.
+- Replacing the full patient portal.
+- Clinical documentation features.
+- Medical advice, triage, or diagnosis.
+- Billing, insurance eligibility, or payment collection unless later approved.
+- Multi-location scheduling optimization for the first release.
 
 ## 6. Personas and Users
 
-### PERSONA-001 — General Prototype Visitor
+### PERSONA-001 — Patient
 
-- **Description:** A general visitor testing the simple todo prototype during stakeholder review.
-- **Primary Need:** Quickly understand and try the core todo interactions.
-- **Key Pain Point:** Needs a simple way to judge whether the todo concept is useful without evaluating a full production product.
+- **Description:** New or existing patient who wants to book or reschedule a clinic appointment online.
+- **Primary Need:** Complete scheduling tasks without calling during office hours.
+- **Key Pain Point:** Phone-only scheduling prevents booking when the office is closed or staff are unavailable.
 
-### PERSONA-002 — Small Business Stakeholder
+### PERSONA-002 — Scheduling Staff
 
-- **Description:** A stakeholder at a small business reviewing whether to continue investing in the todo product concept.
-- **Primary Need:** Compare the core todo experience against competitor todo apps.
-- **Key Pain Point:** Needs enough evidence from a lightweight prototype to make a proceed/no-proceed decision.
+- **Description:** Clinic staff responsible for reviewing appointment requests and managing the daily schedule.
+- **Primary Need:** See appointments and pending requests in one daily view.
+- **Key Pain Point:** Scheduling work is fragmented across phone calls, voicemails, and existing systems.
+
+### PERSONA-003 — Clinic Administrator
+
+- **Description:** Clinic operator responsible for configuring which appointment types can be booked directly and ensuring compliant operations.
+- **Primary Need:** Control online booking rules for low-risk appointment types.
+- **Key Pain Point:** Direct booking must be useful without allowing inappropriate appointment types to bypass staff review.
 
 ## 7. Assumptions and Dependencies
 
 ### Assumptions
 
-- ASM-001 — The prototype will be reviewed in Desktop Chrome.
-- ASM-002 — Tasks do not need to persist after refresh because this is only a prototype.
-- ASM-003 — Informal stakeholder feedback is sufficient for this phase.
-- ASM-004 — No formal accessibility requirement applies to this prototype.
+- ASM-001 — The clinic will define which appointment types are considered low-risk before pilot launch (assumption).
+- ASM-002 — Basic identity and contact capture is sufficient for new patient online booking (assumption).
+- ASM-003 — One-time passcodes sent by SMS or email are acceptable for rescheduling identity verification (assumption).
+- ASM-004 — Reminder messages will avoid PHI beyond clinic name and will use a secure link for appointment details (assumption).
+- ASM-005 — Success targets will be set after pre-launch baseline measurement and before pilot approval (assumption).
 
 ### Dependencies
 
-- DEP-001 — A stakeholder review session or equivalent feedback channel is available.
-- DEP-002 — Reviewers have access to Desktop Chrome.
-- DEP-003 — A developer or prototyping resource is available for same-day delivery.
+- DEP-001 — Existing EHR/practice management scheduling system integration.
+- DEP-002 — SMS and email delivery services that support healthcare privacy and compliance needs.
+- DEP-003 — Staff availability to review and confirm pending appointment requests.
+- DEP-004 — Clinic approval of appointment types, rescheduling cutoff rules, and reminder templates.
 
 ## 8. Functional Requirements
 
-### PRD-FR-001 — Display Empty Todo List
+### PRD-FR-001 — Online Booking for Low-Risk Appointment Types
 
 - **Priority:** Must
 - **Feature:** FEAT-001
@@ -109,266 +119,332 @@ The target end state is a review-ready, self-contained HTML file that opens in D
 
 **Requirement**
 
-The system shall display an empty todo list with a short prompt to add a task when the prototype first opens.
+The system shall allow new and existing patients to directly book available appointment slots online for clinic-selected low-risk appointment types.
 
 **Business Rationale**
 
-The empty state helps visitors understand what to do first without requiring sample data or instructions.
+Direct online booking reduces missed booking opportunities outside office hours while limiting self-service to appointment types the clinic considers safe for direct scheduling.
 
 **Acceptance Criteria**
 
-1. When the HTML file opens in Desktop Chrome for a new session, no user-created tasks are displayed.
-2. The page displays a prompt that communicates the user can add a task.
-3. The task input and add action are visible without navigating to another page.
+1. A patient can select a clinic-approved low-risk appointment type, view available slots, enter required identity and contact information, and receive a booking confirmation.
+2. Direct booking is available only for appointment types marked by the clinic as eligible for direct online booking.
+3. Confirmed online bookings are reflected in the staff daily schedule view.
+4. If no slots are available for an eligible appointment type, the system shows that no online slots are available and does not create a booking.
 
 ---
 
-### PRD-FR-002 — Add Task
+### PRD-FR-002 — Appointment Request for Staff-Confirmed Types
 
 - **Priority:** Must
-- **Feature:** FEAT-001
+- **Feature:** FEAT-002
 - **Persona:** PERSONA-001
 
 **Requirement**
 
-The system shall allow a user to add a non-blank task to the todo list.
+The system shall allow patients to submit appointment requests for appointment types that require staff confirmation and show the request as pending until staff confirms or declines it.
 
 **Business Rationale**
 
-Adding a task is the primary interaction required to evaluate the todo list concept.
+Some appointment types should not be directly booked online, but patients should still be able to start scheduling outside office hours instead of being forced to call.
 
 **Acceptance Criteria**
 
-1. Given the user enters non-blank task text and submits it, the task appears in the todo list.
-2. After a task is added, the input field clears.
-3. The newly added task is displayed as incomplete.
+1. A patient can submit a request for an appointment type that requires staff confirmation.
+2. The patient sees a pending status after submitting the request.
+3. Pending requests appear in the staff daily schedule view grouped by provider and time when applicable.
+4. Staff can distinguish pending requests from confirmed appointments.
 
 ---
 
-### PRD-FR-003 — Prevent Blank Tasks
+### PRD-FR-003 — Online Rescheduling
 
 - **Priority:** Must
-- **Feature:** FEAT-001
+- **Feature:** FEAT-003
 - **Persona:** PERSONA-001
 
 **Requirement**
 
-The system shall prevent blank task submissions and show a simple inline error message.
+The system shall allow patients to reschedule eligible appointments online after verifying their identity with a one-time passcode sent by SMS or email, subject to a configurable cutoff before the appointment time.
 
 **Business Rationale**
 
-Blank tasks would make the prototype feel broken and reduce confidence during stakeholder review.
+Self-service rescheduling reduces phone calls and improves patient flexibility while preserving control over late changes.
 
 **Acceptance Criteria**
 
-1. Given the user submits an empty input, no task is added to the list.
-2. Given the user submits only whitespace, no task is added to the list.
-3. The page displays an inline error message after a blank submission.
-4. The inline error message is removed or no longer shown after a valid task is added.
+1. A patient must complete one-time passcode verification before accessing rescheduling for an existing appointment.
+2. A patient can reschedule an eligible appointment only before the clinic-configured cutoff.
+3. The system prevents online rescheduling after the cutoff and directs the patient to contact the clinic.
+4. A completed reschedule updates the staff daily schedule view.
 
 ---
 
-### PRD-FR-004 — Mark Task Complete
+### PRD-FR-004 — Automated Appointment Reminders
 
 - **Priority:** Must
-- **Feature:** FEAT-001
+- **Feature:** FEAT-004
 - **Persona:** PERSONA-001
 
 **Requirement**
 
-The system shall allow a user to mark a task as complete.
+The system shall send automated appointment reminders by SMS and email using message content that excludes PHI beyond the clinic name and provides a secure link to view appointment details.
 
 **Business Rationale**
 
-Completion is a core todo interaction needed for meaningful comparison against competitor todo apps.
+Automated reminders are intended to reduce no-shows while limiting privacy exposure through SMS and email.
 
 **Acceptance Criteria**
 
-1. Given an incomplete task exists, the user can activate a completion control for that task.
-2. After completion, the task visibly changes to indicate it is complete.
-3. Completing one task does not change the completion state of other tasks.
+1. The system sends reminders through both SMS and email for appointments with valid patient contact details and required consent where applicable.
+2. Reminder message bodies do not include appointment type, diagnosis, treatment details, or other PHI beyond the clinic name.
+3. Reminder messages include a secure link for viewing appointment details.
+4. Failed reminder delivery attempts are visible to staff or administrators for follow-up.
 
 ---
 
-### PRD-FR-005 — Delete Task Immediately
+### PRD-FR-005 — Staff Daily Schedule View
 
 - **Priority:** Must
-- **Feature:** FEAT-001
-- **Persona:** PERSONA-001
+- **Feature:** FEAT-005
+- **Persona:** PERSONA-002
 
 **Requirement**
 
-The system shall delete a task immediately when the user clicks a delete button.
+The system shall provide staff with a daily schedule view that shows appointments and pending requests grouped by provider and time.
 
 **Business Rationale**
 
-Immediate deletion keeps the prototype simple and supports fast evaluation of the core todo flow.
+Staff need one place to understand the day's confirmed schedule and pending scheduling work.
 
 **Acceptance Criteria**
 
-1. Given a task exists, the user can click a delete button associated with that task.
-2. After the delete button is clicked, the task is removed from the list without confirmation.
-3. Deleting one task does not remove other tasks.
+1. Staff can view the day's confirmed appointments grouped by provider and time.
+2. Staff can view pending appointment requests in the same daily schedule experience.
+3. Staff can visually distinguish confirmed appointments from pending requests.
+4. Schedule changes from online booking or rescheduling appear in the staff view after synchronization with the scheduling system.
 
 ---
 
-### PRD-FR-006 — Reset Tasks on Refresh
+### PRD-FR-006 — Appointment Type Configuration
 
 - **Priority:** Must
-- **Feature:** FEAT-001
-- **Persona:** PERSONA-001
+- **Feature:** FEAT-006
+- **Persona:** PERSONA-003
 
 **Requirement**
 
-The system shall not persist user-created tasks after the browser page is refreshed.
+The system shall allow authorized clinic administrators or staff to configure which appointment types are eligible for direct online booking and which require staff confirmation.
 
 **Business Rationale**
 
-The prototype is for review only and does not require local or backend storage.
+The clinic must control scheduling risk by deciding which appointment types patients may book directly.
 
 **Acceptance Criteria**
 
-1. Given the user adds one or more tasks, refreshing the page clears the task list.
-2. After refresh, the page returns to the initial empty state.
-3. No backend request is required to load or restore tasks.
+1. An authorized user can mark an appointment type as direct-bookable or staff-confirmed.
+2. Patient booking behavior changes according to the configured appointment type setting.
+3. Unauthorized users cannot change appointment type booking settings.
+4. Configuration changes are retained and applied to future booking sessions.
 
 ## 9. Non-Functional Requirements
 
-### PRD-NFR-001 — Single-File Implementation
+### PRD-NFR-001 — HIPAA-Compliant PHI Handling
 
-- **Category:** Scalability
+- **Category:** Compliance
 - **Priority:** Must
 
 **Requirement**
 
-The system shall be implemented as one self-contained HTML file with inline CSS and JavaScript and no backend dependency.
+The system shall handle patient scheduling data in a manner consistent with HIPAA requirements for protected health information.
 
 **Acceptance Criteria**
 
-1. The prototype can be opened directly from a single `.html` file in Desktop Chrome.
-2. The prototype does not require a server to add, complete, or delete tasks.
-3. The prototype does not require separate CSS or JavaScript files.
+1. Patient scheduling data is protected in transit and at rest.
+2. Access to patient scheduling data is limited to authorized users and verified patients.
+3. Audit evidence is available for access to and modification of scheduling records.
 
----
+### PRD-NFR-002 — Privacy-Safe Reminder Content
 
-### PRD-NFR-002 — Desktop Chrome Compatibility
-
-- **Category:** Performance
+- **Category:** Privacy
 - **Priority:** Must
 
 **Requirement**
 
-The system shall support the core add, complete, and delete interactions in Desktop Chrome.
+The system shall ensure SMS and email reminder content excludes PHI beyond the clinic name and routes appointment details through a secure link.
 
 **Acceptance Criteria**
 
-1. In Desktop Chrome, the user can add a valid task.
-2. In Desktop Chrome, the user can mark a task complete.
-3. In Desktop Chrome, the user can delete a task.
+1. Reminder templates cannot include appointment type, diagnosis, treatment, or other detailed appointment information in the message body.
+2. Appointment details are accessible only after the patient opens the secure link and completes required verification.
 
----
+### PRD-NFR-003 — Identity Verification for Rescheduling
 
-### PRD-NFR-003 — No Formal Accessibility Requirement
+- **Category:** Security
+- **Priority:** Must
+
+**Requirement**
+
+The system shall require one-time passcode verification by SMS or email before allowing a patient to reschedule an existing appointment.
+
+**Acceptance Criteria**
+
+1. A rescheduling session cannot proceed until a valid one-time passcode is entered.
+2. Invalid or expired passcodes do not grant access to rescheduling.
+3. The system does not expose existing appointment details before successful verification.
+
+### PRD-NFR-004 — Accessibility and Responsive Design
 
 - **Category:** Accessibility
-- **Priority:** Could
+- **Priority:** Must
 
 **Requirement**
 
-The system shall not require formal accessibility validation for this prototype phase.
+The patient-facing online scheduling experience shall be mobile-first, responsive, and meet WCAG 2.1 AA accessibility requirements.
 
 **Acceptance Criteria**
 
-1. No WCAG conformance report is required for prototype acceptance.
-2. Prototype acceptance is not blocked by formal accessibility audit results.
+1. Patient-facing booking, rescheduling, and reminder-link pages pass WCAG 2.1 AA accessibility validation before pilot launch.
+2. Patient-facing flows are usable on mobile and desktop web browsers.
 
 ## 10. User Journeys
 
-### JOURNEY-001 — Add a Task
+### JOURNEY-001 — Patient Books a Directly Bookable Appointment
 
-1. The visitor opens the single HTML file in Desktop Chrome.
-2. The visitor sees an empty list with a prompt to add a task.
-3. The visitor enters task text and submits it.
-4. The task appears in the todo list as incomplete.
+1. Patient opens the online scheduling experience outside office hours.
+2. Patient selects a clinic-approved low-risk appointment type.
+3. Patient chooses an available slot and enters basic identity and contact information.
+4. System confirms the appointment and updates the staff daily schedule.
 
-**Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-NFR-001, PRD-NFR-002
+**Related Requirements:** PRD-FR-001, PRD-FR-005, PRD-NFR-001, PRD-NFR-004
 
-### JOURNEY-002 — Handle Blank Task Input
+### JOURNEY-002 — Patient Requests a Staff-Confirmed Appointment
 
-1. The visitor opens the prototype.
-2. The visitor submits the task input while it is empty or whitespace-only.
-3. The prototype does not add a task and displays an inline error message.
+1. Patient selects an appointment type that requires staff confirmation.
+2. Patient enters required identity, contact, and scheduling preference information.
+3. System creates a pending request and shows pending status to the patient.
+4. Staff sees the pending request in the daily schedule view.
 
-**Related Requirements:** PRD-FR-003, PRD-NFR-002
+**Related Requirements:** PRD-FR-002, PRD-FR-005, PRD-NFR-001, PRD-NFR-004
 
-### JOURNEY-003 — Complete and Delete a Task
+### JOURNEY-003 — Patient Reschedules an Eligible Appointment
 
-1. The visitor adds a task.
-2. The visitor marks the task complete.
-3. The task visibly changes to a completed state.
-4. The visitor clicks the delete button.
-5. The task is immediately removed from the list.
+1. Patient starts the rescheduling flow from the online experience or secure reminder link.
+2. Patient verifies identity using a one-time passcode sent by SMS or email.
+3. Patient selects a new eligible appointment slot before the configurable cutoff.
+4. System confirms the reschedule and updates the staff daily schedule.
 
-**Related Requirements:** PRD-FR-004, PRD-FR-005, PRD-NFR-002
+**Related Requirements:** PRD-FR-003, PRD-FR-005, PRD-NFR-003
 
-### JOURNEY-004 — Stakeholder Review Decision
+### JOURNEY-004 — Patient Receives a Reminder
 
-1. A stakeholder opens the prototype in Desktop Chrome.
-2. The stakeholder reviews the add, complete, and delete interactions.
-3. The stakeholder compares the core experience against competitor todo apps.
-4. The stakeholder provides informal feedback and decides whether to proceed with a more complete todo product.
+1. System identifies an upcoming appointment eligible for reminders.
+2. System sends SMS and email reminders with clinic name and a secure link only.
+3. Patient opens the secure link to view appointment details.
+4. Staff can see failed reminder delivery attempts for follow-up.
 
-**Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-004, PRD-FR-005
+**Related Requirements:** PRD-FR-004, PRD-NFR-001, PRD-NFR-002
+
+### JOURNEY-005 — Staff Reviews the Day's Schedule
+
+1. Staff opens the daily schedule view.
+2. Staff sees confirmed appointments grouped by provider and time.
+3. Staff sees pending requests in the same view.
+4. Staff uses the view to understand confirmed and pending scheduling work for the day.
+
+**Related Requirements:** PRD-FR-005, PRD-FR-006, PRD-NFR-001
 
 ## 11. Feature Breakdown
 
-### FEAT-001 — Core Todo Prototype
+### FEAT-001 — Direct Online Booking
 
-- **Summary:** A single-file HTML todo prototype that supports empty state, task creation, blank-input validation, completion, immediate deletion, and reset-on-refresh behavior.
+- **Summary:** Enables patients to book available slots online for clinic-selected low-risk appointment types.
 - **Priority:** Must
-- **Related Requirements:** PRD-FR-001, PRD-FR-002, PRD-FR-003, PRD-FR-004, PRD-FR-005, PRD-FR-006, PRD-NFR-001, PRD-NFR-002, PRD-NFR-003
-- **Expected Spec File:** `specs/FEAT-001-core-todo-prototype.spec.md`
+- **Related Requirements:** PRD-FR-001, PRD-NFR-001, PRD-NFR-004
+- **Expected Spec File:** `specs/FEAT-001-direct-online-booking.spec.md`
+
+### FEAT-002 — Staff-Confirmed Appointment Requests
+
+- **Summary:** Enables patients to submit pending appointment requests for appointment types that require staff confirmation.
+- **Priority:** Must
+- **Related Requirements:** PRD-FR-002, PRD-FR-005, PRD-NFR-001, PRD-NFR-004
+- **Expected Spec File:** `specs/FEAT-002-staff-confirmed-appointment-requests.spec.md`
+
+### FEAT-003 — Online Rescheduling
+
+- **Summary:** Enables verified patients to reschedule eligible appointments before a configurable cutoff.
+- **Priority:** Must
+- **Related Requirements:** PRD-FR-003, PRD-NFR-003, PRD-NFR-004
+- **Expected Spec File:** `specs/FEAT-003-online-rescheduling.spec.md`
+
+### FEAT-004 — Automated Reminders
+
+- **Summary:** Sends HIPAA-conscious SMS and email reminders with secure links to appointment details.
+- **Priority:** Must
+- **Related Requirements:** PRD-FR-004, PRD-NFR-001, PRD-NFR-002
+- **Expected Spec File:** `specs/FEAT-004-automated-reminders.spec.md`
+
+### FEAT-005 — Staff Daily Schedule View
+
+- **Summary:** Gives staff one view of daily appointments and pending requests grouped by provider and time.
+- **Priority:** Must
+- **Related Requirements:** PRD-FR-005, PRD-NFR-001
+- **Expected Spec File:** `specs/FEAT-005-staff-daily-schedule-view.spec.md`
+
+### FEAT-006 — Scheduling Configuration
+
+- **Summary:** Lets authorized clinic users configure direct-bookable and staff-confirmed appointment types.
+- **Priority:** Must
+- **Related Requirements:** PRD-FR-006, PRD-NFR-001
+- **Expected Spec File:** `specs/FEAT-006-scheduling-configuration.spec.md`
 
 ## 12. Constraints
 
-- CON-001 — The company context is a small business.
-- CON-002 — The prototype must be delivered same-day.
-- CON-003 — The prototype must be a single self-contained HTML file with inline CSS and JavaScript.
-- CON-004 — The prototype must not use a backend.
-- CON-005 — The prototype targets Desktop Chrome only.
-- CON-006 — The prototype must use a clean modern layout with simple responsive styling.
-- CON-007 — The prototype must not persist tasks after refresh.
-- CON-008 — Formal accessibility compliance is not required for this prototype phase.
+- CON-001 — The clinic operates in healthcare and must satisfy HIPAA requirements for protected health information.
+- CON-002 — The company is a small business, so the first release should focus on the minimum viable scheduling and reminder workflows.
+- CON-003 — The first release must integrate with the existing EHR/practice management scheduling system.
+- CON-004 — Reminder messages must not expose PHI beyond clinic name and must use secure links for appointment details.
+- CON-005 — Launch approach is a pilot within one clinic location; pilot date is TBD.
 
 ## 13. Risks
 
 | ID | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|---|
-| RISK-001 | Stakeholders expect production-level features from a prototype | Medium | Medium | Clearly label the deliverable as a prototype and document out-of-scope items. |
-| RISK-002 | Lack of formal metrics makes decision quality subjective | Medium | Medium | Capture informal feedback and record the proceed/no-proceed decision outcome. |
-| RISK-003 | Desktop Chrome-only support limits review coverage | Low | Medium | Confirm reviewers use Desktop Chrome for the stakeholder review. |
-| RISK-004 | No persistence after refresh may be mistaken for a defect | Low | Medium | Communicate reset-on-refresh behavior as an intentional prototype constraint. |
+| RISK-001 | EHR/practice management integration is more complex than expected | High | Medium | Confirm integration capabilities and data sync requirements before implementation commitment |
+| RISK-002 | Reminder messages accidentally expose PHI | High | Medium | Enforce locked reminder templates, secure links, and compliance review before pilot |
+| RISK-003 | Appointment type configuration is too broad and allows inappropriate direct booking | High | Medium | Require clinic approval of direct-bookable appointment types before launch |
+| RISK-004 | Staff do not adopt pending request workflow | Medium | Medium | Include staff in pilot testing and ensure pending requests appear in the daily schedule view |
+| RISK-005 | Success targets cannot be set without baseline data | Medium | Medium | Complete pre-launch baseline measurement before pilot approval |
 
 ## 14. Open Questions
 
 | ID | Question | Owner | Status | Decision/Due Date |
 |---|---|---|---|---|
-| OQ-001 | No open questions identified after interview; proceed with documented decisions. | Product Owner | Closed | 2026-11-19 |
+| OQ-001 | What is the pre-launch baseline and pilot target for after-hours missed booking opportunities? | Product Owner | Open | Before pilot approval |
+| OQ-002 | What is the pre-launch baseline and pilot target for online booking adoption? | Product Owner | Open | Before pilot approval |
+| OQ-003 | What is the pre-launch baseline and pilot target for no-show rate reduction? | Product Owner | Open | Before pilot approval |
+| OQ-004 | What is the pre-launch baseline and pilot target for staff scheduling workload reduction? | Product Owner | Open | Before pilot approval |
+| OQ-005 | Which exact appointment types are direct-bookable versus staff-confirmed at pilot launch? | Clinic Administrator | Open | Before pilot approval |
+| OQ-006 | What is the configurable cutoff for online rescheduling before appointment time? | Clinic Administrator | Open | Before pilot approval |
+| OQ-007 | What existing EHR/practice management system will be integrated and what integration method is available? | Technical Owner | Open | TBD |
+| OQ-008 | What is the pilot launch date for the first clinic location? | Business Sponsor | Open | TBD |
+| OQ-009 | Who are the named Product Owner, Business Sponsor, and contributors for approval? | Business Sponsor | Open | TBD |
 
 ## 15. Release and Rollout Considerations
 
-- **Target Release:** Same-day delivery.
-- **Rollout Approach:** Full delivery of a single local HTML prototype for stakeholder review.
-- **Migration Considerations:** No migration is required because the prototype has no backend and does not persist tasks.
-- **Training/Support Considerations:** No formal training is required; stakeholders should be told that the prototype supports add, complete, delete, blank-input validation, and reset-on-refresh behavior.
+- **Target Release:** Pilot launch date TBD for one clinic location.
+- **Rollout Approach:** Pilot within one clinic location first.
+- **Migration Considerations:** Existing scheduling data must remain synchronized with the EHR/practice management scheduling system; exact migration or sync approach is TBD.
+- **Training/Support Considerations:** Staff will need training on daily schedule view usage, pending request handling, appointment type configuration, and failed reminder follow-up.
 
 ## 16. Definition of Product Success
 
 The product is successful when:
 
-- Stakeholders can review the core todo flow in Desktop Chrome.
-- Stakeholders provide informal feedback on the prototype.
-- Stakeholders can decide whether to proceed with a more complete todo product.
+- The clinic reduces missed booking opportunities outside office hours against the pre-launch baseline.
+- Patients can complete online booking, rescheduling, and reminder-link flows without calling the clinic for eligible scenarios.
+- Staff can see the day's appointments and pending requests in one view grouped by provider and time.
+- No-show rate improves against the pre-launch baseline after automated reminders launch.
 - All Must-priority requirements are accepted.
 - Required quality, security, and compliance outcomes are evidenced.
 
