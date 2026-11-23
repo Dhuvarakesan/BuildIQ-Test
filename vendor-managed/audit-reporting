@@ -1,0 +1,225 @@
+audit_reporting:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-004
+  status: configured_pending_vendor_capability_confirmation
+  last_updated: "2026-11-23"
+  source_artifacts:
+    audit_export_configuration: vendor-managed/audit-export-configuration
+    operational_report_views: vendor-managed/operational-report-views
+    role_matrix: vendor-managed/staff-role-matrix
+    ehr_integration_adapter: vendor-managed/ehr-integration-adapter
+
+objectives:
+  - Provide named-user evidence for access to scheduling records.
+  - Provide timestamped evidence for appointment type, reminder, account, role, MFA, and tenant security configuration changes.
+  - Provide operational visibility into EHR sync failures and reminder delivery failures where vendor supports those events.
+  - Minimize PHI in logs, reports, exports, and support investigation packets.
+
+access_control:
+  allowed_roles:
+    ROLE-CLINIC-ADMIN:
+      view_audit_reports: true
+      export_audit_reports: true
+      view_operational_reports: true
+      export_operational_reports: true
+    ROLE-AUDIT-REVIEWER:
+      view_audit_reports: true
+      export_audit_reports: true
+      view_operational_reports: true
+      export_operational_reports: true
+      write_access: false
+    ROLE-SCHEDULING-STAFF:
+      view_audit_reports: false
+      export_audit_reports: false
+      view_operational_reports: limited_to_pending_requests_and_reminder_failure_follow_up
+      export_operational_reports: false
+    ROLE-APPT-TYPE-CONFIG:
+      view_audit_reports: false_unless_explicitly_approved
+      export_audit_reports: false_unless_explicitly_approved
+      view_operational_reports: limited_to_pending_requests_and_reminder_failure_follow_up
+      export_operational_reports: false
+  named_user_required: true
+  shared_accounts_allowed: false
+  mfa_required: true
+  audit_report_access_is_audited: true
+
+audit_report_requirements:
+  named_user_access_report:
+    enabled: true
+    description: Shows named staff/admin access to scheduling records and report views.
+    minimum_fields:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - clinic_location_id
+      - action
+      - target_record_type
+      - target_record_reference
+      - vendor_correlation_id
+    required_filters:
+      - date_range
+      - actor_user_id
+      - actor_role
+      - action
+      - clinic_location_id
+    timestamp_required: true
+    named_user_required: true
+  configuration_change_report:
+    enabled: true
+    description: Shows configuration changes with actor, timestamp, setting, redacted before/after values, and correlation identifier.
+    minimum_fields:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - configuration_area
+      - changed_setting
+      - previous_value_redacted
+      - new_value_redacted
+      - vendor_correlation_id
+    configuration_areas:
+      - appointment_type_settings
+      - direct_booking_rules
+      - staff_confirmation_rules
+      - reminder_settings
+      - reminder_templates
+      - staff_accounts
+      - role_assignments
+      - mfa_settings
+      - tenant_security_settings
+      - ehr_integration_settings
+    timestamp_required: true
+    named_user_required: true
+  otp_event_report:
+    enabled_where_vendor_supported: true
+    minimum_fields:
+      - occurred_at
+      - workflow_type
+      - otp_event_type
+      - result
+      - vendor_correlation_id
+    prohibited_fields:
+      - otp_code
+      - patient_phone
+      - patient_email
+
+operational_report_requirements:
+  ehr_sync_failure_report:
+    enabled_where_vendor_supported: true
+    source: vendor-managed/ehr-integration-adapter
+    minimum_fields:
+      - occurred_at
+      - tenant_id
+      - operation
+      - severity
+      - outcome
+      - vendor_correlation_id
+      - ehr_correlation_id_if_available
+      - ehr_reference_if_non_phi
+      - freshness_age_minutes
+      - remediation_hint
+    event_categories:
+      - ehr_authentication_failure
+      - ehr_authorization_failure
+      - availability_query_failure
+      - booking_command_failure
+      - reschedule_command_failure
+      - schedule_feed_failure
+      - stale_schedule_feed
+      - mapping_validation_failed
+    prohibited_fields:
+      - patient_name
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - raw_ehr_payload
+      - credentials
+  reminder_delivery_failure_report:
+    enabled_where_vendor_supported: true
+    minimum_fields:
+      - occurred_at
+      - reminder_channel
+      - failure_category
+      - workflow_reference
+      - vendor_correlation_id
+      - delivery_provider_reference_if_non_phi
+      - follow_up_status
+    event_categories:
+      - sms_delivery_failed
+      - email_delivery_failed
+      - reminder_suppressed_due_to_missing_consent
+      - reminder_suppressed_due_to_invalid_contact
+      - reminder_vendor_failure
+    prohibited_fields:
+      - reminder_message_body
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - raw_delivery_payload
+
+phi_minimization:
+  logs: minimize_phi
+  exports: authorized_audit_and_operational_reports_only
+  reminder_content: clinic_name_only_in_messages_and_not_exported
+  raw_ehr_payload_logging: prohibited
+  raw_delivery_payload_logging: prohibited
+  patient_contact_details_in_reports: prohibited
+  patient_demographics_in_reports: prohibited_unless_vendor_view_requires_active_workflow_display_and_export_excludes
+  credentials_in_reports: prohibited
+
+correlation_and_support:
+  primary_identifier: vendor_correlation_id
+  required_across:
+    - audit_events
+    - booking_and_rescheduling_events
+    - configuration_changes
+    - otp_events
+    - ehr_sync_failures
+    - reminder_failures
+  secondary_identifiers:
+    - ehr_correlation_id_if_available
+    - ehr_reference_if_non_phi
+    - delivery_provider_reference_if_non_phi
+  support_packet_rules:
+    include_report_timestamp: true
+    include_actor_for_staff_actions: true
+    include_failure_category_and_remediation_hint: true
+    exclude_phi_sensitive_values: true
+
+evidence_review:
+  cadence: monthly_during_pilot_or_after_security_incident
+  reviewers:
+    - clinic_compliance_owner
+    - security_reviewer
+    - clinic_technical_owner
+  required_evidence:
+    - named_user_access_report_export
+    - configuration_change_report_export
+    - ehr_sync_failure_report_or_vendor_limitation_note
+    - reminder_delivery_failure_report_or_vendor_limitation_note
+    - export_access_audit_event
+  vendor_limitation_tracking:
+    required: true
+    fields:
+      - limitation_id
+      - unsupported_event_or_field
+      - affected_acceptance_criterion
+      - compensating_control
+      - owner
+      - review_date
+
+acceptance_mapping:
+  AC-008:
+    met_by:
+      - audit_report_requirements.named_user_access_report
+      - audit_report_requirements.configuration_change_report
+    evidence: Reports require actor_user_id, actor_display_name, actor_role, action or changed_setting, occurred_at timestamp, and vendor_correlation_id.
+  AC-009:
+    met_by:
+      - operational_report_requirements.ehr_sync_failure_report
+      - operational_report_requirements.reminder_delivery_failure_report
+    evidence: Reports include EHR sync failure categories and reminder delivery failure categories where vendor supports those events.

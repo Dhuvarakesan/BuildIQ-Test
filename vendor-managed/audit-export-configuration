@@ -1,0 +1,258 @@
+audit_export_configuration:
+  project: Clinic-booking-app-123456
+  environment: pilot
+  related_requirement: REQ-004
+  interface: ARD-API-005
+  vendor_capability_status: vendor_capability_tbd
+  configuration_owner: clinic_compliance_owner
+  last_updated: "2026-11-23"
+
+purpose:
+  description: Provide HIPAA access-control evidence for active scheduling workflows without exporting unnecessary PHI.
+  scope:
+    - pilot_clinic_location_only
+    - named_staff_and_admin_users_only
+    - vendor_supported_audit_events_only
+    - active_scheduling_and_configuration_workflows_only
+
+audit_event_coverage:
+  scheduling_record_access:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - schedule_view_opened
+      - appointment_summary_viewed
+      - pending_request_viewed
+      - reminder_failure_queue_viewed
+    required_fields:
+      - occurred_at
+      - tenant_id
+      - clinic_location_id
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - action
+      - target_record_type
+      - target_record_reference
+      - vendor_correlation_id
+    phi_policy: target_record_reference_must_be_vendor_or_ehr_non_phi_identifier
+  booking_and_rescheduling:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - booking_started
+      - booking_submitted_to_ehr
+      - booking_confirmed
+      - booking_failed
+      - reschedule_started
+      - reschedule_submitted_to_ehr
+      - reschedule_confirmed
+      - reschedule_failed
+    include_ehr_outcome: true
+    required_fields:
+      - occurred_at
+      - actor_user_id_or_patient_context
+      - workflow_type
+      - appointment_external_reference
+      - ehr_reference_if_non_phi
+      - outcome
+      - vendor_correlation_id
+      - ehr_correlation_id_if_available
+    phi_policy: no_patient_name_contact_dob_reason_or_raw_payload
+  pending_request_actions:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - pending_request_confirmed
+      - pending_request_declined
+      - pending_request_reassigned
+      - pending_request_note_added
+    attribution: named_staff_user_required
+    required_fields:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - pending_request_reference
+      - action
+      - vendor_correlation_id
+    phi_policy: notes_export_blocked_unless_vendor_can_redact_phi
+  configuration_changes:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - appointment_type_configuration_changed
+      - direct_bookable_flag_changed
+      - staff_confirmation_rule_changed
+      - reminder_delivery_setting_changed
+      - reminder_template_changed
+      - role_assignment_changed
+      - staff_account_enabled
+      - staff_account_disabled
+      - mfa_setting_changed
+      - tenant_security_setting_changed
+    required_fields:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - configuration_area
+      - changed_setting
+      - previous_value_redacted
+      - new_value_redacted
+      - vendor_correlation_id
+    phi_policy: changed_values_must_not_include_reminder_body_phi_or_patient_identifiers
+  otp_events:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - otp_requested
+      - otp_verified
+      - otp_failed
+      - otp_expired
+      - otp_rate_limited
+    required_fields:
+      - occurred_at
+      - tenant_id
+      - workflow_type
+      - otp_event_type
+      - result
+      - vendor_correlation_id
+    phi_policy: mask_contact_destination_and_never_export_otp_code
+  ehr_sync_failures:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - ehr_authentication_failure
+      - ehr_authorization_failure
+      - availability_query_failure
+      - booking_command_failure
+      - reschedule_command_failure
+      - schedule_feed_failure
+      - stale_schedule_feed
+      - mapping_validation_failed
+    required_fields:
+      - occurred_at
+      - tenant_id
+      - operation
+      - severity
+      - outcome
+      - vendor_correlation_id
+      - ehr_correlation_id_if_available
+      - ehr_reference_if_non_phi
+      - freshness_age_minutes
+    phi_policy: raw_ehr_payload_and_credentials_prohibited
+  reminder_failures:
+    enabled: true
+    required_when_vendor_supported: true
+    event_names:
+      - sms_delivery_failed
+      - email_delivery_failed
+      - reminder_suppressed_due_to_missing_consent
+      - reminder_suppressed_due_to_invalid_contact
+      - reminder_vendor_failure
+    required_fields:
+      - occurred_at
+      - tenant_id
+      - reminder_channel
+      - failure_category
+      - workflow_reference
+      - vendor_correlation_id
+      - delivery_provider_reference_if_non_phi
+    phi_policy: message_body_patient_contact_and_appointment_details_prohibited
+
+export_profiles:
+  audit_reviewer_monthly_access_review:
+    audience:
+      - ROLE-AUDIT-REVIEWER
+      - ROLE-CLINIC-ADMIN
+    format_preference:
+      - vendor_native_csv
+      - vendor_native_json
+      - vendor_dashboard_download
+    date_range: prior_calendar_month
+    includes:
+      - scheduling_record_access
+      - pending_request_actions
+      - configuration_changes
+      - audit_report_access
+    required_columns:
+      - occurred_at
+      - actor_user_id
+      - actor_display_name
+      - actor_role
+      - action
+      - target_record_type
+      - vendor_correlation_id
+    excluded_columns:
+      - patient_name
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - reminder_message_body
+      - raw_ehr_payload
+      - credentials
+  incident_support_export:
+    audience:
+      - ROLE-CLINIC-ADMIN
+      - ROLE-AUDIT-REVIEWER
+    trigger: clinic_compliance_or_technical_owner_request
+    includes:
+      - booking_and_rescheduling
+      - ehr_sync_failures
+      - reminder_failures
+      - otp_events
+    required_columns:
+      - occurred_at
+      - operation
+      - outcome
+      - severity
+      - vendor_correlation_id
+      - ehr_correlation_id_if_available
+      - delivery_provider_reference_if_non_phi
+      - remediation_hint
+    excluded_columns:
+      - patient_name
+      - patient_phone
+      - patient_email
+      - date_of_birth
+      - full_appointment_reason
+      - reminder_message_body
+      - raw_ehr_payload
+      - credentials
+
+export_limitations:
+  vendor_capability_dependency: Exact event names, retention windows, export formats, and API availability must be confirmed during vendor due diligence.
+  unsupported_events: If the vendor cannot emit a listed event, the gap must be tracked as a vendor limitation and reviewed before pilot approval.
+  timestamp_source: Vendor system timestamp is authoritative unless the vendor provides immutable event-ingestion and actor-local timestamps.
+  retention: Vendor retention period is TBD and must satisfy clinic compliance approval before production PHI is enabled.
+  automated_delivery: Disabled until vendor export encryption, destination access controls, and BAA evidence are accepted.
+  api_export: TBD under ARD-API-005; dashboard export is acceptable for pilot evidence if access is named-user auditable.
+
+correlation_identifiers:
+  vendor_correlation_id:
+    required: true
+    phi_status: non_phi
+    support_use: Primary support investigation reference across audit, operational, EHR integration, OTP, and reminder failure events.
+  ehr_correlation_id_if_available:
+    required: false
+    phi_status: non_phi_or_redacted
+    support_use: Cross-reference with EHR/practice management support tickets when provided without PHI.
+  ehr_reference_if_non_phi:
+    required: false
+    phi_status: must_be_non_phi
+    support_use: Appointment or operation reference only when the EHR confirms it is safe for operational reporting.
+  delivery_provider_reference_if_non_phi:
+    required: false
+    phi_status: must_be_non_phi
+    support_use: SMS or email provider troubleshooting reference without phone number, email address, or message body.
+
+privacy_controls:
+  minimize_phi: true
+  include_privacy_sensitive_reminder_content: false
+  include_raw_ehr_payload: false
+  include_patient_contact_details: false
+  include_credentials_or_secrets: false
+  allow_only_authorized_exports: true
+  export_access_must_be_audited: true
