@@ -1,0 +1,68 @@
+# Compliance Readiness Checklist
+
+Purpose: document the vendor due diligence gate required before the clinic allows the HIPAA-ready scheduling SaaS to process scheduling PHI for the pilot.
+
+Scope:
+- Pilot clinic location only.
+- Patient scheduling, rescheduling, reminder, staff schedule, audit, and EHR integration workflows.
+- Vendor-hosted scheduling SaaS and any vendor subprocessors that may process scheduling PHI.
+
+Status summary:
+- Overall readiness: Blocked
+- PHI processing: Disabled
+- Pilot launch: Blocked pending required evidence and security finding review
+- Related requirement: REQ-001
+- Related controls: ARD-DEC-001, ARD-DEC-004, ARD-DEC-007, ARD-SEC-001, ARD-SEC-002, ARC-CON-004, ARC-CON-010
+
+## Required Evidence Before PHI Processing
+
+| Evidence item | Required before PHI processing | Current status | Evidence location | Owner | Notes |
+|---|---:|---|---|---|---|
+| Signed Business Associate Agreement (BAA) | Yes | Pending | TBD | Clinic compliance owner | Must be fully executed before any scheduling PHI is entered into the SaaS. |
+| HIPAA security documentation | Yes | Pending | TBD | SaaS vendor / clinic compliance owner | Must describe administrative, technical, and physical safeguards for scheduling PHI. |
+| Third-party security assessment evidence | Yes | Pending | TBD | SaaS vendor / security reviewer | SOC 2 Type II, HITRUST, penetration test attestation, or equivalent current evidence is acceptable if approved by the clinic. |
+| CVE management process evidence | Yes | Pending | TBD | SaaS vendor / security reviewer | Must show intake, severity classification, remediation expectations, and customer notification practices. |
+| SBOM or equivalent component inventory | Yes | Pending | TBD | SaaS vendor / security reviewer | Must cover in-scope hosted services or provide an equivalent inventory acceptable to the clinic. |
+| Encryption and access control evidence | Yes | Pending | TBD | SaaS vendor / security reviewer | Must support encryption in transit and at rest, individual accounts, MFA, RBAC, and auditable access. |
+| Audit and operational reporting evidence | Yes | Pending | TBD | SaaS vendor / clinic technical owner | Must include access events, scheduling changes, configuration changes, sync failures, and reminder failures where supported. |
+| Secure retention and deletion commitments | Yes | Pending | TBD | SaaS vendor / clinic compliance owner | Must document retention/deletion controls for operational copies, reminder/OTP events, audit logs, and exports where available. |
+
+PHI processing may be enabled only after every required evidence item above is marked Accepted, the BAA is signed, and the tenant configuration gate is updated through authorized clinic approval.
+
+## Vendor Operational Commitments
+
+| Commitment | Current status | Evidence location | Notes |
+|---|---|---|---|
+| Uptime / availability commitment | Pending | TBD | Record SLA or published service commitment if available. |
+| Support response time commitment | Pending | TBD | Record incident, security, and production support response targets where available. |
+| Rollback / release recovery capability | Pending | TBD | Vendor owns hosted releases and rollback under ARD-DEC-004. |
+| Incident support and breach notification process | Pending | TBD | Must include clinic notification path and security incident escalation process. |
+| Non-production validation approach | Pending | TBD | Must show how clinic configuration and EHR integration changes can be validated before production use. |
+| Data retention commitment | Pending | TBD | Must minimize SaaS operational copies and avoid bulk scheduling history migration for pilot. |
+| Data deletion commitment | Pending | TBD | Must describe deletion or return process at termination and for no-longer-needed operational copies where supported. |
+
+## Security Finding Classification
+
+Severity definitions:
+- Critical: exploitable issue that may allow unauthorized PHI access, privilege escalation, tenant isolation bypass, destructive data change, or production workflow compromise.
+- High: material weakness that could expose scheduling PHI, disrupt in-scope scheduling workflows, weaken authentication/authorization, or defeat auditability.
+- Medium: security weakness with limited exploitability or compensating controls that does not directly block in-scope production workflows.
+- Low: minor control gap or informational issue with limited security impact.
+
+Readiness rule:
+- Any open Critical or High finding affecting in-scope production workflows blocks pilot readiness unless a formal clinic risk acceptance is documented.
+- Formal risk acceptance must include finding ID, affected workflow, compensating controls, accepting authority, decision date, expiration or review date, and remediation owner.
+- Medium and Low findings must have an owner and target disposition before pilot approval, but do not automatically block readiness unless the clinic security reviewer escalates them.
+
+## Open Finding Register
+
+| Finding ID | Severity | Affected workflow | Status | Risk acceptance | Owner | Target disposition | Blocks pilot |
+|---|---|---|---|---|---|---|---|
+| None recorded | N/A | N/A | N/A | N/A | N/A | N/A | No |
+
+## Readiness Decision Log
+
+| Date | Decision | Approver | Notes |
+|---|---|---|---|
+| 2026-11-23 | Initial tenant readiness gate created; PHI processing and pilot readiness remain blocked until required evidence is accepted. | TBD | No vendor evidence has been recorded yet. |
+
